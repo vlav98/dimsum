@@ -12,6 +12,7 @@ import { onReady } from "./events/onReady.js";
   client.on("interactionCreate", async (interaction) => {
     await onInteraction(interaction);
   });
+
   await client.login(process.env.DISCORD_TOKEN);
 })();
 
