@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "start": "ts-node --esm src/app.ts",
-    "dev": "nodemon src/app.ts",
+    "dev": "nodemon --exec \"yarn start\"",
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
@@ -28,11 +28,13 @@
     "@types/remove-markdown": "0.3.1",
     "@typescript-eslint/eslint-plugin": "^5.42.0",
     "@typescript-eslint/parser": "^5.42.0",
-    "eslint": "^8.29.0",
+    "eslint": "^8.33.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-unicorn": "^44.0.2",
+    "nodemon": "^2.0.20",
     "prettier": "^2.7.1",
     "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^4.9.3"
   }
 }
