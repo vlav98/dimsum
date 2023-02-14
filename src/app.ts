@@ -1,8 +1,8 @@
 import "dotenv/config";
-import { Client } from "discord.js";
-import { IntentOptions } from "./config/intentOptions.js";
-import { onInteraction } from "./events/onInteraction.js";
-import { onReady } from "./events/onReady.js";
+import { Client, Collection } from "discord.js";
+import { IntentOptions } from "./config/intentOptions";
+import { onInteraction } from "./events/onInteraction";
+import { onReady } from "./events/onReady";
 
 (async () => {
   const client = new Client({ intents: IntentOptions });

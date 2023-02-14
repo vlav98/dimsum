@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import { Command } from "src/interfaces/Command";
 
 export const Hello: Command = {

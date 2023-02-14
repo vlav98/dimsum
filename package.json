@@ -3,12 +3,11 @@
   "version": "1.0.0",
   "description": "manger miam",
   "main": "app.ts",
-  "type": "module",
   "license": "MIT",
   "private": true,
   "scripts": {
     "start": "ts-node --esm src/app.ts",
-    "dev": "nodemon --exec \"yarn start\"",
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {

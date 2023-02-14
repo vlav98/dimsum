@@ -1,12 +1,14 @@
 import { Command } from "src/interfaces/Command";
-import { Hello } from "./Hello.js";
-import { help } from "./help.js";
-import { randomPrompt } from "./randomPrompt.js";
-import { twoCharPrompt } from "./twoCharPrompt.js";
+import { Hello } from "./Hello";
+import { help } from "./help";
+import { randomPrompt } from "./randomPrompt";
+import { react } from "./react";
+import { twoCharPrompt } from "./twoCharPrompt";
 
 export const CommandList: Command[] = [
   Hello,
   help,
   twoCharPrompt,
   randomPrompt,
+  react,
 ];

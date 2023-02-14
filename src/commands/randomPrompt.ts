@@ -157,9 +157,6 @@ var genre = new Array(
   "Hurt/Comfort",
   "Angst",
   "Fluff",
-  "Fluff",
-  "Fluff",
-  "Fluff",
   "Domestic",
   "Action/Adventure",
   "Pining",
@@ -171,23 +168,6 @@ var genre = new Array(
   "Relationship Development",
   "Angst",
   "Plot What Plot",
-  "Romantic Comedy",
-  "Hurt/Comfort",
-  "Angst",
-  "Fluff",
-  "Fluff",
-  "Fluff",
-  "Fluff",
-  "Domestic",
-  "Action/Adventure",
-  "Pining",
-  "Slow Burn",
-  "Fix-It",
-  "Humor",
-  "Mystery",
-  "Character Study",
-  "Relationship Development",
-  "Angst",
   "Romantic Comedy"
 );
 
@@ -290,9 +270,9 @@ export const randomPrompt: Command = {
           .setStyle(ButtonStyle.Primary)
       );
 
-      await interaction.reply({
+      await interaction.editReply({
         embeds: [randomPromptEmbed],
-        components: [row],
+        // components: [row],
       });
       return;
     } catch (err) {

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { Command } from "src/interfaces/Command";
 
 const prompts = [
@@ -241,9 +241,19 @@ export const twoCharPrompt: Command = {
 
     content = fluff(character1, character2);
 
-    await interaction.followUp({
-      ephemeral: true,
-      content,
+    const randomPromptEmbed = new EmbedBuilder();
+    randomPromptEmbed.setTitle("OTP Sentence Prompt");
+    randomPromptEmbed.setDescription(
+      "Generating your random sentence prompt..."
+    );
+
+    randomPromptEmbed.addFields({
+      name: "Sentence",
+      value: content,
+    });
+
+    await interaction.editReply({
+      embeds: [randomPromptEmbed],
     });
   },
 };
