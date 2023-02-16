@@ -1,4 +1,4 @@
-import { Command } from "src/interfaces/Command";
+import { Command } from "../interfaces/Command";
 import { Hello } from "./Hello";
 import { help } from "./help";
 import { randomPrompt } from "./randomPrompt";

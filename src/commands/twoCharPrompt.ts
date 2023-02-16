@@ -1,5 +1,9 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import { Command } from "src/interfaces/Command";
+import {
+  CommandInteraction,
+  EmbedBuilder,
+  SlashCommandBuilder,
+} from "discord.js";
+import { Command } from "../interfaces/Command";
 
 const prompts = [
   "Them resting together and talking to each other before falling asleep.",
@@ -231,7 +235,7 @@ export const twoCharPrompt: Command = {
         .setDescription("second character name")
         .setRequired(true)
     ),
-  run: async (interaction) => {
+  run: async (interaction: CommandInteraction) => {
     await interaction.deferReply();
 
     let content = "";

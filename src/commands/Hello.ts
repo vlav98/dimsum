@@ -1,5 +1,5 @@
-import { SlashCommandBuilder } from "discord.js";
-import { Command } from "src/interfaces/Command";
+import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { Command } from "../interfaces/Command";
 
 export const Hello: Command = {
   data: new SlashCommandBuilder()
@@ -10,7 +10,7 @@ export const Hello: Command = {
         option.setName("yourname").setDescription("Returns a greeting.")
       // .setRequired(true)
     ),
-  run: async (interaction) => {
+  run: async (interaction: CommandInteraction) => {
     await interaction.deferReply();
 
     const { user } = interaction;

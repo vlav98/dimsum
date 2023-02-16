@@ -1,13 +1,14 @@
 import { EmbedBuilder, SlashCommandBuilder } from "@discordjs/builders";
+import { CommandInteraction } from "discord.js";
+import { Command } from "../interfaces/Command";
 
-import { Command } from "src/interfaces/Command";
 // import { errorHandler } from "../utils/errorHandler";
 
 export const help: Command = {
   data: new SlashCommandBuilder()
     .setName("help")
     .setDescription("Provides information on using this bot."),
-  run: async (interaction) => {
+  run: async (interaction: CommandInteraction) => {
     try {
       await interaction.deferReply();
       const helpEmbed = new EmbedBuilder();

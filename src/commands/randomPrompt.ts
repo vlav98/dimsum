@@ -3,9 +3,10 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  CommandInteraction,
   SlashCommandBuilder,
 } from "discord.js";
-import { Command } from "src/interfaces/Command";
+import { Command } from "../interfaces/Command";
 
 var phrases = new Array(
   "A stressful case/mission rattles the [characters] and/or clues them in.",
@@ -226,7 +227,7 @@ export const randomPrompt: Command = {
         .setDescription("Ship name to generate a prompt for")
         .setRequired(false)
     ),
-  run: async (interaction) => {
+  run: async (interaction: CommandInteraction) => {
     try {
       await interaction.deferReply();
 
