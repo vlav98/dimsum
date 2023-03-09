@@ -1,6 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction } from "discord.js";
-import { Command } from "../interfaces/Command";
+import { Command } from "../../interfaces/Command";
 
 // import { errorHandler } from "../utils/errorHandler";
 

@@ -7,6 +7,7 @@ declare global {
       GUILD_ID: string;
       DISCORD_TOKEN: string;
       PUBLIC_KEY: string;
+      PREFIX: string;
     }
   }
 }
