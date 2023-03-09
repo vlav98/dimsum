@@ -3,7 +3,7 @@ import { Client, Events } from "discord.js";
 import { IntentOptions } from "./config/intentOptions";
 import { onInteraction } from "./events/onInteraction";
 import { onReady } from "./events/onReady";
-import { onMessageCommand } from "events/onMessageCommand";
+import { onMessageCommand } from "./events/onMessageCommand";
 
 (async () => {
   const client = new Client({ intents: IntentOptions });

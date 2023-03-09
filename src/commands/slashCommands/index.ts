@@ -1,5 +1,5 @@
-import { Hello } from "commands/slashCommands/Hello";
 import { Command } from "interfaces/Command";
+import { Hello } from "./Hello";
 import { help } from "./help";
 import { RandomOCGenerator } from "./oc_generator/randomOCGenerator";
 import { randomPrompt } from "./randomPrompt";
