@@ -1,9 +1,28 @@
-import { Client } from "discord.js";
+import "dotenv/config";
+import { Client, Events } from "discord.js";
+import { IntentOptions } from "./config/intentOptions";
+import { onInteraction } from "./events/onInteraction";
+import { onReady } from "./events/onReady";
+import { onMessageCommand } from "./events/onMessageCommand";
 
-console.log("Bot is starting...");
+(async () => {
+  const client = new Client({ intents: IntentOptions });
 
-const client = new Client({
-  intents: [],
-});
+  client.on(Events.ClientReady, async () => await onReady(client));
 
-console.log(client);
+  client.on(Events.InteractionCreate, async (interaction) => {
+    await onInteraction(interaction);
+  });
+
+  client.on(Events.MessageCreate, async (message) => {
+    onMessageCommand(message, process.env.PREFIX);
+  });
+
+  await client.login(process.env.DISCORD_TOKEN);
+})();
+
+// console.log("Bot is starting...");
+
+// client.login(token);
+
+// console.log(client);
