@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "preserveSymlinks": true,
+    "emitDeclarationOnly": true,
+    "paths": {}
+  },
+  "include": ["./**/*.ts"],
+  "references": [],
+  "ts-node": {
+    "files": true
+  }
+}
