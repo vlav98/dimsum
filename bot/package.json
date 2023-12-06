@@ -6,7 +6,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "ts-node --esm src/app.ts",
+    "start": "ts-node src/app.ts",
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc --project tsconfig.json",
     "lint": "eslint '**/*.ts'",
@@ -50,7 +50,7 @@
     "ts-mockito": "^2.6.1",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
-    "tsconfig-paths": "^4.1.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^4.9.3"
   }
 }

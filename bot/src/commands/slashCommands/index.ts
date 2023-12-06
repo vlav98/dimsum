@@ -1,16 +1,16 @@
-import { Command } from "interfaces/Command";
-import { Hello } from "./Hello";
-import { help } from "./help";
-import { RandomOCGenerator } from "./oc_generator/randomOCGenerator";
-import { randomPrompt } from "./randomPrompt";
-import { react } from "./react";
-import { twoCharPrompt } from "./twoCharPrompt";
+import { Command } from 'src/interfaces/Command';
+import { hello } from './random/hello/handler';
+import { help } from './help/help';
+import { RandomOCGenerator } from './oc_generator/randomOCGenerator';
+import { react } from './react';
+import { promptCommandList } from './prompts';
+import addrole from './addRole';
 
 export const CommandList: Command[] = [
-  Hello,
+  ...promptCommandList,
+  hello,
   help,
-  twoCharPrompt,
-  randomPrompt,
   react,
   RandomOCGenerator,
+  addrole,
 ];

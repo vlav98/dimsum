@@ -1,15 +1,26 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    "rootDir": "src",
+    "baseUrl": "./",
     "composite": true,
     "preserveSymlinks": true,
     "emitDeclarationOnly": true,
-    "paths": {}
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "paths": {
+      "*": ["*"],
+      "@config": ["src/config/*"],
+      "@commands": ["src/commands/*"],
+      "@events": ["src/events/*"],
+      "@interfaces": ["src/interfaces/*"],
+      "@types": ["src/types/*"]
+    }
   },
-  "include": ["./**/*.ts"],
+  "include": ["./src", "./**/*.ts"],
   "references": [],
   "ts-node": {
-    "files": true
+    "files": true,
+    "require": ["tsconfig-paths/register"]
   }
 }

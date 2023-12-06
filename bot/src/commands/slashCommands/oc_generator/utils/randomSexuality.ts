@@ -1,8 +1,8 @@
-import { Sexuality } from "../../../../types/character/sexuality";
-import { randomizeEnum } from "../../../../utils";
+import { Sexuality } from '../../../../types/character/sexuality';
+import { randomizeEnum } from '../../../../utils';
 
-export function randomizeSexuality(): Sexuality {
+export function randomizeSexuality(): string {
   return randomizeEnum(Sexuality);
 }
 
-console.log("What is their sexuality ?", randomizeSexuality());
+// console.log('What is their sexuality ?', randomizeSexuality());

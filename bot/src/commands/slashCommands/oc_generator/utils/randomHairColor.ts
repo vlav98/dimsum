@@ -1,5 +1,5 @@
-import { HairColours } from "../../../../types/character/hair";
-import { randomizeEnum } from "../../../../utils";
+import { randomizeEnum } from '../../../../utils';
+import { HairColours } from '../../../../types/character/hair';
 
 export function randomizeNumberOfHairColours(): number {
   const numberOfHairColours = Math.floor(Math.random() * 3) + 1;
@@ -7,9 +7,9 @@ export function randomizeNumberOfHairColours(): number {
   return numberOfHairColours;
 }
 
-export function randomizeHairColor(): HairColours[] {
+export function randomizeHairColor(): string[] {
   const numberOfHairColours = randomizeNumberOfHairColours();
-  const randomHairColor: HairColours[] = [];
+  const randomHairColor: string[] = [];
   for (let i = 0; i < numberOfHairColours; i++) {
     randomHairColor.push(randomizeEnum(HairColours));
   }
@@ -18,5 +18,5 @@ export function randomizeHairColor(): HairColours[] {
 }
 
 const numberOfHairColours = randomizeNumberOfHairColours();
-console.log("How many hair colours do they have ?", numberOfHairColours);
-console.log("What are their hair colours ?", randomizeHairColor());
+// console.log('How many hair colours do they have ?', numberOfHairColours);
+// console.log('What are their hair colours ?', randomizeHairColor());
