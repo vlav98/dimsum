@@ -4,6 +4,7 @@ import { IntentOptions } from "./config/intentOptions";
 import { onInteraction } from "./events/onInteraction";
 import { onReady } from "./events/onReady";
 import { onMessageCommand } from "./events/onMessageCommand";
+import { startDashboardServer } from "./dashboard";
 
 (async () => {
   if (!process.env.DISCORD_TOKEN) {
@@ -26,6 +27,7 @@ import { onMessageCommand } from "./events/onMessageCommand";
   });
 
   await client.login(process.env.DISCORD_TOKEN);
+  await startDashboardServer(client);
 })();
 
 // console.log("Bot is starting...");
