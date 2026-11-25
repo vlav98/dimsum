@@ -7,7 +7,7 @@ export const onReady = async (client: Client) => {
 
   console.log(`${client.user.username} is online`);
 
-  const rest = new REST({ version: "9" }).setToken(
+  const rest = new REST({ version: "10" }).setToken(
     process.env.DISCORD_TOKEN as string
   );
 

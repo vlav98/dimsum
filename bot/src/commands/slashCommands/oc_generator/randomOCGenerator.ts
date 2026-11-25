@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "@discordjs/builders";
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import {
   randomizeGender,
@@ -12,7 +12,7 @@ export const RandomOCGenerator: Command = {
   data: new SlashCommandBuilder()
     .setName("ocgen")
     .setDescription("Gives you a random OC."),
-  run: async (interaction: CommandInteraction) => {
+  run: async (interaction: ChatInputCommandInteraction) => {
     try {
       await interaction.deferReply();
 
@@ -44,9 +44,6 @@ export const RandomOCGenerator: Command = {
       randomOCEmbed.setFooter({
         text: "c'est un test les amis",
       });
-      const text = interaction.options;
-      console.log(text);
-
       await interaction.editReply({
         embeds: [randomOCEmbed],
         // components: [row],

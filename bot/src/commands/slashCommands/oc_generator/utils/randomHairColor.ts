@@ -1,4 +1,7 @@
-import { HairColours } from "../../../../types/character/hair";
+import {
+  HairColour,
+  HairColours,
+} from "../../../../types/character/hair";
 import { randomizeEnum } from "../../../../utils";
 
 export function randomizeNumberOfHairColours(): number {
@@ -7,9 +10,9 @@ export function randomizeNumberOfHairColours(): number {
   return numberOfHairColours;
 }
 
-export function randomizeHairColor(): HairColours[] {
+export function randomizeHairColor(): HairColour[] {
   const numberOfHairColours = randomizeNumberOfHairColours();
-  const randomHairColor: HairColours[] = [];
+  const randomHairColor: HairColour[] = [];
   for (let i = 0; i < numberOfHairColours; i++) {
     randomHairColor.push(randomizeEnum(HairColours));
   }

@@ -6,6 +6,13 @@ import { onReady } from "./events/onReady";
 import { onMessageCommand } from "./events/onMessageCommand";
 
 (async () => {
+  if (!process.env.DISCORD_TOKEN) {
+    throw new Error("DISCORD_TOKEN is required. Configure bot/.env first.");
+  }
+  if (!process.env.GUILD_ID) {
+    throw new Error("GUILD_ID is required. Configure bot/.env first.");
+  }
+
   const client = new Client({ intents: IntentOptions });
 
   client.on(Events.ClientReady, async () => await onReady(client));
@@ -15,7 +22,7 @@ import { onMessageCommand } from "./events/onMessageCommand";
   });
 
   client.on(Events.MessageCreate, async (message) => {
-    onMessageCommand(message, process.env.PREFIX);
+    onMessageCommand(message, process.env.PREFIX ?? "!");
   });
 
   await client.login(process.env.DISCORD_TOKEN);

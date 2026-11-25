@@ -19,4 +19,4 @@ export const HairColours = {
   ...BasicHairColours,
 };
 
-export type HairColours = typeof HairColours;
+export type HairColour = (typeof HairColours)[keyof typeof HairColours];

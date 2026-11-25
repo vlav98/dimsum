@@ -1,9 +1,9 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   EmbedBuilder,
   SlashCommandBuilder,
 } from "discord.js";
-import { Command } from "../interfaces/Command";
+import { Command } from "../../interfaces/Command";
 
 const prompts = [
   "Them resting together and talking to each other before falling asleep.",
@@ -207,9 +207,6 @@ const prompts = [
   "{B} and {A} walking through town, holding hands while it snows.",
   "{A} and {B} trying to hide their relationship. However, it turns out everyone knows they're dating.",
 ];
-let person1,
-  person2 = "";
-
 function fluff(character1: string, character2: string): string {
   // Get random prompt
   const R1 = Math.floor(Math.random() * prompts.length);
@@ -235,15 +232,12 @@ export const twoCharPrompt: Command = {
         .setDescription("second character name")
         .setRequired(true)
     ),
-  run: async (interaction: CommandInteraction) => {
+  run: async (interaction: ChatInputCommandInteraction) => {
     await interaction.deferReply();
 
-    let content = "";
-
-    const character1 = interaction.options.get("character1")?.value as string;
-    const character2 = interaction.options.get("character2")?.value as string;
-
-    content = fluff(character1, character2);
+    const character1 = interaction.options.getString("character1", true);
+    const character2 = interaction.options.getString("character2", true);
+    const content = fluff(character1, character2);
 
     const randomPromptEmbed = new EmbedBuilder();
     randomPromptEmbed.setTitle("OTP Sentence Prompt");

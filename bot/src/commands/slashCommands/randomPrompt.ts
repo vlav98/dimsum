@@ -1,14 +1,11 @@
 import { EmbedBuilder } from "@discordjs/builders";
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  CommandInteraction,
+  ChatInputCommandInteraction,
   SlashCommandBuilder,
 } from "discord.js";
-import { Command } from "../interfaces/Command";
+import { Command } from "../../interfaces/Command";
 
-var phrases = new Array(
+var phrases = [
   "A stressful case/mission rattles the [characters] and/or clues them in.",
   "Absence makes the heart grow fonder",
   "Age regression/De-Aging",
@@ -101,9 +98,9 @@ var phrases = new Array(
   "Fandom within a fandom; your characters are writers or artists and meet online",
   "Secret admirer, sending love letters or gifts anonymously",
   "Fuzzy morning after or 'do you remember what we did last night?'"
-);
+];
 
-var setting = new Array(
+var setting = [
   "Western AU",
   "Historical Royalty",
   "Modern Royalty",
@@ -152,9 +149,9 @@ var setting = new Array(
   "Treehouse",
   "Zoo",
   "Museum"
-);
+];
 
-var genre = new Array(
+var genre = [
   "Hurt/Comfort",
   "Angst",
   "Fluff",
@@ -170,9 +167,9 @@ var genre = new Array(
   "Angst",
   "Plot What Plot",
   "Romantic Comedy"
-);
+];
 
-var trope = new Array(
+var trope = [
   "Alpha/Beta/Omega dynamics",
   "Soulmates (Names, Timers, Idenfitying Marks, etc",
   "Androids and Robots",
@@ -195,7 +192,7 @@ var trope = new Array(
   "Undercover Married",
   "Marriage (of arrangement, convenience, or necessity; accidental marriage; traditional marriage or partnership ceremony)",
   "Secret Identity"
-);
+];
 
 function getSetting() {
   var settingIndex = Math.floor(Math.random() * setting.length);
@@ -208,8 +205,8 @@ function getGenre() {
 }
 
 function getTrope() {
-  var tropeIndex = Math.floor(Math.random() * genre.length);
-  return genre[tropeIndex];
+  var tropeIndex = Math.floor(Math.random() * trope.length);
+  return trope[tropeIndex];
 }
 
 function getPrompt() {
@@ -227,7 +224,7 @@ export const randomPrompt: Command = {
         .setDescription("Ship name to generate a prompt for")
         .setRequired(false)
     ),
-  run: async (interaction: CommandInteraction) => {
+  run: async (interaction: ChatInputCommandInteraction) => {
     try {
       await interaction.deferReply();
 
@@ -264,16 +261,8 @@ export const randomPrompt: Command = {
         text: `Version ${process.env.npm_package_version}`,
       });
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("primary")
-          .setLabel("Save prompt")
-          .setStyle(ButtonStyle.Primary)
-      );
-
       await interaction.editReply({
         embeds: [randomPromptEmbed],
-        // components: [row],
       });
       return;
     } catch (err) {

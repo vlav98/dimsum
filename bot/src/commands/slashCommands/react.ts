@@ -1,5 +1,5 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
-import { Command } from "../interfaces/Command";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { Command } from "../../interfaces/Command";
 
 export const react: Command = {
   data: new SlashCommandBuilder()
@@ -11,10 +11,10 @@ export const react: Command = {
     .addStringOption((option) =>
       option.setName("emoji").setDescription("Put your emoji here.")
     ),
-  run: async (interaction: CommandInteraction) => {
+  run: async (interaction: ChatInputCommandInteraction) => {
     const { user, options } = interaction;
-    const messageOption = options.get("message")?.value as string;
-    const emojiOption = options.get("emoji")?.value as string;
+    const messageOption = options.getString("message");
+    const emojiOption = options.getString("emoji");
 
     const content =
       messageOption ??

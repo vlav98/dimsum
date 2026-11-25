@@ -1,38 +1,57 @@
 # DimSum
 
-This is the Dimsum discord repository.
+DimSum contains a Discord bot and a separate Vite-based dashboard.
 
-## Prerequisites
+## Requirements
 
-**Node.js** : Ensure you have Node.js installed. If not, you can download it from Node.js's official website.
+- Node.js 22.12+ (or 20.19+)
+- npm
 
-**Git**: Install Git to clone the repository. You can download it from Git's official website.
-
-**Yarn**: Install Yarn as an alternative to npm. You can download it from Yarn's official website.
-
-## Installation
-
-Open a terminal and clone the repository using Git:
+## Install
 
 ```bash
 git clone https://github.com/vlav98/dimsum.git
+cd dimsum
+npm install
+cp bot/.env.example bot/.env
 ```
 
-Change to the project directory:
+Edit `bot/.env` and set your Discord bot token and guild ID. `PREFIX` is
+optional and defaults to `!`. Keep the token private; the `.env` file is
+ignored by Git.
+
+Enable the **Message Content Intent** for the bot in the Discord Developer
+Portal if you want to use prefix-based message commands.
+
+## Start the bot
+
+From the repository root:
 
 ```bash
-cd folderName
+npm start
 ```
 
-Install the required dependencies using Yarn (you have to be in the folder):
+For development with automatic restarts:
 
 ```bash
-yarn install
+npm run dev
 ```
 
-## Contributing
+## Start the dashboard
 
-Pull requests are welcome. For major changes, please open an issue first
-to discuss what you would like to change.
+In a separate terminal, from the repository root:
 
-Please make sure to update tests as appropriate.
+```bash
+npm run start --workspace=dashboard
+```
+
+Open the local URL printed by Vite (by default, <http://localhost:5173>). The
+dashboard is currently a frontend scaffold and does not connect to the bot.
+
+## Other checks
+
+```bash
+npm run build
+npm test
+npm run lint
+```

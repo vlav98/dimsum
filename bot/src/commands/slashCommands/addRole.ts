@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Command } from "../../interfaces/Command";
 
 export const addRole: Command = {
@@ -14,10 +14,10 @@ export const addRole: Command = {
     .addStringOption((option) =>
       option.setName("emoji").setDescription("Put your emoji here.")
     ),
-  run: async (interaction: CommandInteraction) => {
-    const { user, options } = interaction;
-    const content = options.get("message")?.value as string;
-    const emojiOption = options.get("emoji")?.value as string;
+  run: async (interaction: ChatInputCommandInteraction) => {
+    const { options } = interaction;
+    const content = options.getString("message", true);
+    const emojiOption = options.getString("emoji");
 
     const message = await interaction.reply({
       content,
