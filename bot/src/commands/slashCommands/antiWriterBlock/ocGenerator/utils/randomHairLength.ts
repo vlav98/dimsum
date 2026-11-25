@@ -1,4 +1,4 @@
-import { HairLength } from "../../../../types/character/hair";
+import { HairLength } from "../../../../../types/character/hair";
 
 export function randomizeHairLength(): HairLength {
   const hairLength = Object.values(HairLength);

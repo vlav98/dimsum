@@ -18,12 +18,14 @@ type RoleMessage = {
   mappings: Mapping[];
 };
 type Settings = { prefix: string; isCustom: boolean };
+type WritingSettings = { channelId: string | null; channels: Channel[] };
 type Details = {
   settings: Settings;
   channels: Channel[];
   roles: Role[];
   emojis: Emoji[];
   messages: RoleMessage[];
+  writing: WritingSettings;
 };
 
 function EmojiInput({
@@ -116,6 +118,8 @@ export default function ServerSettings({ guild }: { guild: Guild }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [prefix, setPrefix] = useState('');
   const [savingPrefix, setSavingPrefix] = useState(false);
+  const [writingChannelId, setWritingChannelId] = useState('');
+  const [savingWriting, setSavingWriting] = useState(false);
   const [channelQuery, setChannelQuery] = useState('');
   const [channelId, setChannelId] = useState('');
   const [content, setContent] = useState('');
@@ -135,10 +139,12 @@ export default function ServerSettings({ guild }: { guild: Guild }) {
       getJson<Role[]>(`${base}/roles`),
       getJson<Emoji[]>(`${base}/emojis`),
       getJson<RoleMessage[]>(`${base}/reaction-roles`),
+      getJson<WritingSettings>(`${base}/settings/writing`),
     ])
-      .then(([settings, channels, roles, emojis, messages]) => {
+      .then(([settings, channels, roles, emojis, messages, writing]) => {
         if (active) {
-          setDetails({ settings, channels, roles, emojis, messages });
+          setDetails({ settings, channels, roles, emojis, messages, writing });
+          setWritingChannelId(writing.channelId ?? '');
           setPrefix(settings.prefix);
           setChannelId(channels[0]?.id ?? '');
         }
@@ -168,6 +174,30 @@ export default function ServerSettings({ guild }: { guild: Guild }) {
       setError(errorMessage(saveError));
     } finally {
       setSavingPrefix(false);
+    }
+  }
+
+  async function saveWritingChannel(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingWriting(true);
+    setError('');
+    try {
+      const response = await mutate(`${base}/settings/writing`, 'PUT', {
+        channelId: writingChannelId || null,
+      });
+      const result: { channelId: string | null } = await response.json();
+      setDetails((current) =>
+        current
+          ? {
+              ...current,
+              writing: { ...current.writing, channelId: result.channelId },
+            }
+          : current,
+      );
+    } catch (saveError) {
+      setError(errorMessage(saveError));
+    } finally {
+      setSavingWriting(false);
     }
   }
 
@@ -308,6 +338,51 @@ export default function ServerSettings({ guild }: { guild: Guild }) {
                 : 'Using the default bot prefix.'}
             </p>
           </form>
+          <div className="configured-messages">
+            <h2>Community writing channel</h2>
+            <p className="form-description">
+              /group-prompt posts here, never in an arbitrary channel. The bot
+              needs View Channel, Send Messages, and Embed Links.
+            </p>
+            <form onSubmit={(event) => void saveWritingChannel(event)}>
+              <label className="field-label" htmlFor="writing-channel">
+                Dedicated writing channel
+              </label>
+              <select
+                id="writing-channel"
+                className="server-select"
+                value={writingChannelId}
+                onChange={(event) => setWritingChannelId(event.target.value)}
+              >
+                <option value="">Disabled — no channel configured</option>
+                {writingChannelId &&
+                  !details.writing.channels.some(
+                    (channel) => channel.id === writingChannelId,
+                  ) && (
+                    <option value={writingChannelId}>
+                      Current channel (unavailable)
+                    </option>
+                  )}
+                {details.writing.channels.map((channel) => (
+                  <option key={channel.id} value={channel.id}>
+                    {channel.category ? `${channel.category} / ` : ''}#{' '}
+                    {channel.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="secondary-button form-submit"
+                disabled={savingWriting}
+              >
+                {savingWriting ? 'Saving…' : 'Save writing channel'}
+              </button>
+              <p className="field-help">
+                {details.writing.channelId
+                  ? 'Community prompt posting is configured.'
+                  : 'Group prompts are disabled until a manager chooses a channel.'}
+              </p>
+            </form>
+          </div>
         </section>
         <section className="content-card feature-card">
           <p className="eyebrow">SELF-ASSIGNABLE ROLES</p>

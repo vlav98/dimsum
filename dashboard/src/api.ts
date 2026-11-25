@@ -6,7 +6,20 @@ export type Guild = {
   canManage: boolean;
 };
 
-export type PromptKind = 'random' | 'fanfic' | 'otp' | 'oc' | 'other';
+export type PromptKind =
+  | 'random'
+  | 'fanfic'
+  | 'otp'
+  | 'oc'
+  | 'other'
+  | 'prompt'
+  | 'tag'
+  | 'twist'
+  | 'name'
+  | 'challenge'
+  | 'group'
+  | 'roulette'
+  | 'matchup';
 
 export const kindLabels: Record<PromptKind, string> = {
   random: 'Random prompt',
@@ -14,6 +27,14 @@ export const kindLabels: Record<PromptKind, string> = {
   otp: 'OTP prompt',
   oc: 'OC generator',
   other: 'Other',
+  prompt: 'Story prompt',
+  tag: 'Tags',
+  twist: 'Plot twist',
+  name: 'Names',
+  challenge: 'Writing challenge',
+  group: 'Group prompt',
+  roulette: 'Writing roulette',
+  matchup: 'OC matchup',
 };
 
 export type SavedPrompt = {

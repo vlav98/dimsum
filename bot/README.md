@@ -31,6 +31,64 @@ Reaction-role messages can be edited in place in the dashboard. Emoji inputs
 accept Unicode, custom emoji mentions, and known default/server `:name:` codes.
 The bot needs Read Message History to edit existing messages.
 
+## Writing tools
+
+Run `/help` for commands grouped by theme. All generators use curated local
+lists, not an external AI service. New generated results have a **Save prompt**
+button and their own type filters in `/savedprompts` and the dashboard.
+
+| Command | Options and behavior |
+| --- | --- |
+| `/prompt` | Optional `universe` (fantasy, modern, sci-fi, historical, supernatural), `mood`, and `trope`. Filters shape the scenario, rather than only adding labels. |
+| `/oc` | Optional `style` (fantasy, modern, poetic, mysterious) and `section` (full, personality, appearance, background). Full sheets include name, personality, flaw, phobia, aesthetic, power/role, secret, and appearance traits. |
+| `/tag` | Optional `count` from 1–5; draws distinct evocative keywords. |
+| `/twist` | Draws a plot twist for a work in progress. |
+| `/name` | Optional `style`, `count` from 1–5, and `nickname:true`. Returns distinct suggestions. |
+| `/challenge` | Draws a fresh micro-writing task. |
+| `/daily` | Everyone gets the same challenge throughout the UTC day, changing at midnight UTC. The curated challenge list cycles; this is not an automatic posting schedule. |
+| `/oc-duel` or `/matchup` | Optional `first` and `second` OC descriptions; omitted characters are generated. Optional `situation`: debate, survival, or contest. Members decide the outcome; the bot never picks a winner. |
+| `/adopt` | Offers a full OC in a server, optionally choosing its `style`. The first member to click **Adopt this OC** permanently claims it. |
+| `/group-prompt` | Posts one shared scenario in the server's manager-configured writing channel. |
+| `/roulette` | Mixes a trope, location, object, and absurd constraint. |
+
+Examples:
+
+```text
+/prompt universe:fantasy mood:hopeful trope:found family
+/oc style:modern section:personality
+/name style:mysterious count:3 nickname:true
+/oc-duel first:Aster, a stubborn gardener second:Vale, a shy archivist situation:debate
+```
+
+### Community channel and adoption
+
+A manager must run `/writing-channel channel:#writing` or choose a
+**Community writing channel** in the dashboard before `/group-prompt` works.
+Only text and announcement channels are supported. The bot needs View Channel,
+Send Messages, and Embed Links, and the invoking member must be able to view
+and send messages in that channel. Clear the dashboard's channel selection to
+disable group prompts. Posting never pings everyone.
+
+An adoption claim and its saved OC are written atomically. Claims survive bot
+restarts, and deleting the saved sheet (including manager deletion) does **not**
+release the claim. Offers are exclusive, but this is a community claim record,
+not an intellectual-property ownership system. Find the adopted sheet through
+`/savedprompts kind:oc` or the dashboard. An unclaimed offer has no ordinary
+Save button.
+
+Storage now also includes dedicated writing channels and adoption offers.
+Existing version-1 and version-2 files migrate without losing prefixes,
+reaction-role mappings, or saved prompts. Keep a backup of
+`bot/data/dashboard-data.json`.
+
+### Command organization
+
+New commands live in themed `writing/`, `productivity/`, `community/`, and
+`creations/` folders under `src/commands/slashCommands`. Reusable generation
+logic lives in `src/generators/writing.ts`. `CommandGroups` in the slash-command
+index is the catalog used by registration, `/help`, and dashboard categories.
+Existing command modules and slash names remain compatible.
+
 ## Random fanfic prompts
 
 Use `/randomprompt` or `/fanficprompt`, optionally providing a ship name. Both
@@ -44,8 +102,9 @@ Use the **Save prompt** button on generated prompt replies to save them in the
 dashboard. A saved prompt from a server is visible to its author and that
 server's managers; a prompt saved in a DM is visible only to its author. The
 OC generator has the same save button. In Discord, `/savedprompts` privately
-shows one save per page; optionally filter with `kind` (random, fanfic, OTP, OC,
-or other) and select a `page`. Use the type buttons to switch filters and
+shows one save per page; optionally filter with `kind` (including story prompts,
+tags, twists, names, challenges, group prompts, roulette, matchups, and existing
+generator types) and select a `page`. Use the type buttons to switch filters and
 **Previous**/**Next** to change pages without rerunning the command.
 **Delete** removes only your current save, not the original generated message
 or another user's saved copy. Deletions also disappear from the dashboard.

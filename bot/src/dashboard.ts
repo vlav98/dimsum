@@ -9,7 +9,12 @@ import express, {
 } from "express";
 import session from "express-session";
 import { ChannelType, Client, PermissionFlagsBits } from "discord.js";
-import { CommandList } from "./commands";
+import { CommandGroups } from "./commands";
+import {
+  CommunitySetupError,
+  listWritingChannels,
+  writingChannel,
+} from "./community";
 import {
   canBeReactionAssigned,
   deleteReactionRoleMessage,
@@ -28,6 +33,8 @@ import {
   listSavedPromptsForUser,
   ReactionRoleMapping,
   setGuildPrefix,
+  getWritingChannel,
+  setWritingChannel,
 } from "./storage";
 
 interface DashboardUser {
@@ -458,10 +465,13 @@ export async function startDashboardServer(
 
   app.get("/api/commands", requireLogin, (_req, res) => {
     res.json(
-      CommandList.map(({ data }) => ({
-        name: data.name,
-        description: data.description,
-      })),
+      CommandGroups.flatMap((group) =>
+        group.commands.map(({ data }) => ({
+          name: data.name,
+          description: data.description,
+          category: group.name,
+        })),
+      ),
     );
   });
 
@@ -554,6 +564,61 @@ export async function startDashboardServer(
         if (!(await userCanManageGuild(req, res, guildId))) return;
         res.json(await listSavedPromptsForGuild(guildId));
       } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/settings/writing",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const [channelId, channels] = await Promise.all([
+          getWritingChannel(guildId),
+          listWritingChannels(client, guildId),
+        ]);
+        res.json({ channelId, channels });
+      } catch (error) {
+        if (error instanceof CommunitySetupError) {
+          res.status(400).json({ error: error.message });
+          return;
+        }
+        next(error);
+      }
+    },
+  );
+
+  app.put(
+    "/api/guilds/:guildId/settings/writing",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const channelId: unknown = req.body?.channelId;
+        if (
+          channelId !== null &&
+          (typeof channelId !== "string" || !channelId)
+        ) {
+          res
+            .status(400)
+            .json({
+              error: "Choose a writing channel or null to disable posting.",
+            });
+          return;
+        }
+        if (channelId !== null)
+          await writingChannel(client, guildId, channelId);
+        await setWritingChannel(guildId, channelId);
+        res.json({ channelId });
+      } catch (error) {
+        if (error instanceof CommunitySetupError) {
+          res.status(400).json({ error: error.message });
+          return;
+        }
         next(error);
       }
     },
@@ -810,11 +875,9 @@ export async function startDashboardServer(
           typeof req.body?.content === "string" ? req.body.content : "";
         const mappings = parseMappings(req.body?.mappings);
         if (!content || !mappings) {
-          res
-            .status(400)
-            .json({
-              error: "Provide message text and 1–10 emoji-role mappings.",
-            });
+          res.status(400).json({
+            error: "Provide message text and 1–10 emoji-role mappings.",
+          });
           return;
         }
         await editReactionRoleMessage(

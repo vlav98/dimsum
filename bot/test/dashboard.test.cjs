@@ -159,6 +159,7 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
         PermissionFlagsBits.SendMessages,
         PermissionFlagsBits.AddReactions,
         PermissionFlagsBits.ReadMessageHistory,
+        PermissionFlagsBits.EmbedLinks,
       ]),
     messages: { fetch: async () => message },
     send: async () => message,
@@ -362,6 +363,60 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
+    const commandResponse = await request(
+      `${baseUrl}/api/commands`,
+      cookieOptions,
+    );
+    const commands = await commandResponse.json();
+    assert.ok(
+      commands.some(
+        (command) =>
+          command.name === "prompt" && command.category === "Anti-writer block",
+      ),
+    );
+    const writingResponse = await request(
+      `${baseUrl}/api/guilds/guild-1/settings/writing`,
+      cookieOptions,
+    );
+    const writing = await writingResponse.json();
+    assert.equal(writing.channelId, null);
+    assert.equal(writing.channels[0].id, "channel-1");
+    assert.equal(
+      (
+        await change("/api/guilds/guild-2/settings/writing", "PUT", {
+          channelId: "channel-1",
+        })
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await change("/api/guilds/guild-1/settings/writing", "PUT", {
+          channelId: "other-server-channel",
+        })
+      ).status,
+      400,
+    );
+    const writingUpdate = await change(
+      "/api/guilds/guild-1/settings/writing",
+      "PUT",
+      { channelId: "channel-1" },
+    );
+    assert.equal(writingUpdate.status, 200);
+    assert.deepEqual(await writingUpdate.json(), { channelId: "channel-1" });
+    const writingReload = await request(
+      `${baseUrl}/api/guilds/guild-1/settings/writing`,
+      cookieOptions,
+    );
+    assert.equal((await writingReload.json()).channelId, "channel-1");
+    assert.equal(
+      (
+        await change("/api/guilds/guild-1/settings/writing", "PUT", {
+          channelId: null,
+        })
+      ).status,
+      200,
+    );
     const emojisResponse = await request(
       `${baseUrl}/api/guilds/guild-1/emojis`,
       cookieOptions,

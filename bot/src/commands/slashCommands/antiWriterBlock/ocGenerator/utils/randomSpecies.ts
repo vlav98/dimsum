@@ -1,5 +1,5 @@
-import { HalfSpecies, Species } from "../../../../types/character/species";
-import { capitalizeFirstLetter, randomizeEnum } from "../../../../utils";
+import { HalfSpecies, Species } from "../../../../../types/character/species";
+import { capitalizeFirstLetter, randomizeEnum } from "../../../../../utils";
 
 export function randomizeSpecies(): string {
   const species = randomizeEnum(Species);

@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { Command } from "../../interfaces/Command";
+import { Command } from "../../../interfaces/Command";
 
 export const react: Command = {
   data: new SlashCommandBuilder()

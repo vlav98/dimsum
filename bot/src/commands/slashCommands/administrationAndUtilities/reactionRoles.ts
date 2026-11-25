@@ -5,9 +5,9 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
-import { Command } from "../../interfaces/Command";
-import { publishReactionRoleMessage } from "../../reactionRoles";
-import { ReactionRoleMapping } from "../../storage";
+import { Command } from "../../../interfaces/Command";
+import { publishReactionRoleMessage } from "../../../reactionRoles";
+import { ReactionRoleMapping } from "../../../storage";
 
 const reactionRoleCommand = new SlashCommandBuilder()
   .setName("reactionroles")

@@ -1,7 +1,7 @@
 import { EmbedBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { Command } from "../../../interfaces/Command";
-import { savePromptButton } from "../../../promptComponents";
+import { Command } from "../../../../interfaces/Command";
+import { savePromptButton } from "../../../../promptComponents";
 import {
   randomizeEyeColor,
   randomizeGender,

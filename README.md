@@ -39,6 +39,27 @@ For development with automatic restarts:
 npm run dev
 ```
 
+## Writing and community commands
+
+Use `/help` to browse the themed command catalog. Existing commands such as
+`/ocgen`, `/randomprompt`, `/fanficprompt`, and `/otpprompt` remain available.
+
+| Theme | Commands |
+| --- | --- |
+| Anti-writer block | `/prompt`, `/oc`, `/tag`, `/twist`, `/name` |
+| Productivity and sharing | `/challenge`, `/daily`, `/group-prompt` |
+| Server games | `/oc-duel` (alias `/matchup`), `/roulette` |
+| Personal creations | `/adopt`, `/savedprompts` |
+
+Generators use curated local lists, with no external AI or AO3 connection.
+`/daily` is shared for the UTC day; it does not schedule an automatic post.
+`/adopt` creates a first-claim-wins OC offer and saves the claimed sheet in its
+owner's library. `/group-prompt` needs a dedicated channel set by a manager
+with `/writing-channel channel:#writing` or **Server settings → Community
+writing channel** in the dashboard. The bot needs View Channel, Send Messages,
+and Embed Links there. See [the command reference](bot/README.md#writing-tools)
+for options and examples.
+
 ## Start the live dashboard
 
 In the Discord Developer Portal, add this redirect URL under **OAuth2 →

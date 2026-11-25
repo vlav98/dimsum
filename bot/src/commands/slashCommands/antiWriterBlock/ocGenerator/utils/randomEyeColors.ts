@@ -1,8 +1,8 @@
 import {
   EyeColors,
   Heterochromia,
-} from "../../../../types/character/eyeColors";
-import { randomizeEnum } from "../../../../utils";
+} from "../../../../../types/character/eyeColors";
+import { randomizeEnum } from "../../../../../utils";
 
 export function randomizeHeterochromia(): Heterochromia {
   return Math.random() < 0.5 ? Heterochromia.YES : Heterochromia.NO;

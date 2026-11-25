@@ -96,6 +96,8 @@ a.server-tile:hover { border-color: var(--accent); box-shadow: 0 6px 22px #0003;
 .text-button:hover:not(:disabled) { background: #354052; color: #fff; }
 .danger-button { color: #ffa4af; }
 .command-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.command-group + .command-group { margin-top: 24px; }
+.command-group h3 { margin-bottom: 12px; color: #b6c9d9; }
 .command-item { display: grid; grid-template-columns: minmax(125px, .7fr) 1.3fr; gap: 18px; padding: 14px 0; border-top: 1px solid var(--border); }
 .command-item code { color: #8bd1fb; font-size: 13px; }
 .command-item span { color: var(--muted); font-size: 12px; line-height: 1.6; }

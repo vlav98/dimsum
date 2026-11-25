@@ -3,9 +3,9 @@ import {
   ChatInputCommandInteraction,
   SlashCommandBuilder,
 } from "discord.js";
-import { Command } from "../../interfaces/Command";
+import { Command } from "../../../interfaces/Command";
 import { getRandomAdditionalTags } from "./fanficTags";
-import { savePromptButton } from "../../promptComponents";
+import { savePromptButton } from "../../../promptComponents";
 
 var phrases = [
   "A stressful case/mission rattles the [characters] and/or clues them in.",

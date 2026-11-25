@@ -2,9 +2,18 @@ import { Interaction } from "discord.js";
 import { CommandList } from "../commands/index";
 import { saveGeneratedPrompt, showSavedPrompt } from "../savedPrompts";
 import { handleSavedPromptsButton } from "../commands/slashCommands/savedPrompts";
+import { savedPromptKinds } from "../storage";
+import { adoptOC } from "../adoptions";
 
 export const onInteraction = async (interaction: Interaction) => {
   if (interaction.isButton()) {
+    if (interaction.customId.startsWith("adopt-oc:")) {
+      await adoptOC(
+        interaction,
+        interaction.customId.slice("adopt-oc:".length),
+      );
+      return;
+    }
     if (interaction.customId.startsWith("saved-prompts:")) {
       await handleSavedPromptsButton(interaction);
       return;
@@ -15,9 +24,8 @@ export const onInteraction = async (interaction: Interaction) => {
     ) {
       const kindValue = interaction.customId.split(":")[1];
       const kind =
-        (["random", "fanfic", "otp", "oc", "other"] as const).find(
-          (candidate) => candidate === kindValue,
-        ) ?? "other";
+        savedPromptKinds.find((candidate) => candidate === kindValue) ??
+        "other";
       await saveGeneratedPrompt(interaction, kind);
       return;
     }

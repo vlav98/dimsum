@@ -1,9 +1,5 @@
 import { ButtonInteraction, MessageFlags } from "discord.js";
-import {
-  getSavedPromptForUser,
-  savePrompt,
-  SavedPromptKind,
-} from "./storage";
+import { getSavedPromptForUser, savePrompt, SavedPromptKind } from "./storage";
 
 export const promptKindLabels: Record<SavedPromptKind, string> = {
   random: "Random prompt",
@@ -11,7 +7,30 @@ export const promptKindLabels: Record<SavedPromptKind, string> = {
   otp: "OTP prompt",
   oc: "OC generator",
   other: "Other",
+  prompt: "Story prompt",
+  tag: "Tags",
+  twist: "Plot twist",
+  name: "Names",
+  challenge: "Writing challenge",
+  group: "Group prompt",
+  roulette: "Writing roulette",
+  matchup: "OC matchup",
 };
+
+export function promptText(embed: {
+  title?: string | null;
+  description?: string | null;
+  fields?: readonly { name: string; value: string }[];
+}): string {
+  return [
+    embed.title,
+    embed.description,
+    ...(embed.fields ?? []).map(({ name, value }) => `${name}: ${value}`),
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 6000);
+}
 
 export async function saveGeneratedPrompt(
   interaction: ButtonInteraction,
@@ -26,14 +45,7 @@ export async function saveGeneratedPrompt(
     return;
   }
 
-  const content = [
-    embed.title,
-    embed.description,
-    ...embed.fields.map(({ name, value }) => `${name}: ${value}`),
-  ]
-    .filter(Boolean)
-    .join("\n\n")
-    .slice(0, 6000);
+  const content = promptText(embed);
   if (!content) {
     await interaction.reply({
       content: "This message does not contain a prompt to save.",
@@ -61,9 +73,7 @@ export async function saveGeneratedPrompt(
       ? "You and this server’s admins can view it in the dashboard."
       : "Only you can view it in the dashboard.";
     await interaction.editReply(
-      saved
-        ? `Prompt saved. ${visibility}`
-        : "You already saved this prompt.",
+      saved ? `Prompt saved. ${visibility}` : "You already saved this prompt.",
     );
   } catch (error) {
     console.error("Could not save generated prompt:", error);

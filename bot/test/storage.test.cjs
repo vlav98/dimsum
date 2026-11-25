@@ -332,7 +332,7 @@ test("migrates existing version-one saved prompts without data loss", async () =
     const migratedData = JSON.parse(
       await readFile(path.join(dataDirectory, "dashboard-data.json"), "utf8"),
     );
-    assert.equal(migratedData.version, 2);
+    assert.equal(migratedData.version, 3);
     assert.equal(migratedData.savedPrompts[0].kind, "other");
   } finally {
     if (previousDirectory === undefined) delete process.env.DIMSUM_DATA_DIR;

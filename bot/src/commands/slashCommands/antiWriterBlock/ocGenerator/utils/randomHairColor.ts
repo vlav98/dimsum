@@ -1,8 +1,8 @@
 import {
   HairColour,
   HairColours,
-} from "../../../../types/character/hair";
-import { randomizeEnum } from "../../../../utils";
+} from "../../../../../types/character/hair";
+import { randomizeEnum } from "../../../../../utils";
 
 export function randomizeNumberOfHairColours(): number {
   const numberOfHairColours = Math.floor(Math.random() * 3) + 1;

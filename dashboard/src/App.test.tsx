@@ -96,6 +96,9 @@ function mockDashboard(hasManagedServers = true) {
       }
       return jsonResponse(null, 204);
     }
+    if (url === '/api/guilds/guild-1/settings/writing' && method === 'PUT') {
+      return jsonResponse(JSON.parse(String(init?.body)));
+    }
     const responses: Record<string, unknown> = {
       '/api/me': { id: 'user-1', displayName: 'Test User', avatar: null },
       '/api/status': {
@@ -131,11 +134,21 @@ function mockDashboard(hasManagedServers = true) {
         {
           name: 'reactionroles',
           description: 'Create a reaction-role message',
+          category: 'Administration & utilities',
+        },
+        {
+          name: 'prompt',
+          description: 'Generate a story starter',
+          category: 'Anti-writer block',
         },
       ],
       '/api/me/saved-prompts': mine,
       '/api/guilds/guild-1/saved-prompts': server,
       '/api/guilds/guild-1/settings': { prefix: '!', isCustom: false },
+      '/api/guilds/guild-1/settings/writing': {
+        channelId: null,
+        channels: [{ id: 'channel-1', name: 'general', category: null }],
+      },
       '/api/guilds/guild-1/channels': [
         { id: 'channel-1', name: 'general', category: null },
         { id: 'channel-2', name: 'science', category: 'Topics' },
@@ -274,7 +287,9 @@ describe('dashboard', () => {
     );
     await user.type(screen.getByLabelText('Search channels'), 'sci');
     expect(
-      screen.queryByRole('option', { name: '# general' }),
+      within(screen.getByLabelText('Post in')).queryByRole('option', {
+        name: '# general',
+      }),
     ).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Post in'), 'channel-2');
     await user.type(screen.getByLabelText('Message'), 'A fresh role message');
@@ -321,6 +336,53 @@ describe('dashboard', () => {
       ).not.toBeInTheDocument(),
     );
     expect(screen.getByText('Edited role message')).toBeInTheDocument();
+  });
+
+  test('Overview groups commands and managers configure or disable the community writing channel', async () => {
+    mockDashboard();
+    const user = userEvent.setup();
+    render(<App />);
+    expect(
+      await screen.findByRole('heading', { name: 'Anti-writer block' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Administration & utilities' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'My servers' }));
+    await user.click(
+      await screen.findByRole('link', { name: 'Open Test Server' }),
+    );
+    const select = await screen.findByLabelText('Dedicated writing channel');
+    await user.selectOptions(select, 'channel-1');
+    await user.click(
+      screen.getByRole('button', { name: 'Save writing channel' }),
+    );
+    expect(
+      await screen.findByText('Community prompt posting is configured.'),
+    ).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/guilds/guild-1/settings/writing',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ channelId: 'channel-1' }),
+      }),
+    );
+    await user.selectOptions(select, '');
+    await user.click(
+      screen.getByRole('button', { name: 'Save writing channel' }),
+    );
+    expect(
+      await screen.findByText(
+        'Group prompts are disabled until a manager chooses a channel.',
+      ),
+    ).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/guilds/guild-1/settings/writing',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ channelId: null }),
+      }),
+    );
   });
 
   test('server prompt tabs filter and delete own saves and other members’ server saves', async () => {

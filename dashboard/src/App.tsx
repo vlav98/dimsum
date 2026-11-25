@@ -13,7 +13,7 @@ type DashboardData = {
     uptimeMs: number | null;
   };
   guilds: Guild[];
-  commands: { name: string; description: string }[];
+  commands: { name: string; description: string; category?: string }[];
 };
 
 function formatUptime(uptimeMs: number | null) {
@@ -204,6 +204,12 @@ function App() {
   const myServers = route === '#/servers';
   const managedGuilds =
     dashboard?.guilds.filter((entry) => entry.canManage) ?? [];
+  const commandCategories = [
+    ...new Set(
+      dashboard?.commands.map((command) => command.category ?? 'Utilities') ??
+        [],
+    ),
+  ];
   return (
     <main className="dashboard-shell">
       <header className="topbar">
@@ -361,14 +367,24 @@ function App() {
               </div>
               <section className="content-card personal-prompts">
                 <h2>Slash commands</h2>
-                <ul className="command-list">
-                  {dashboard.commands.map((command) => (
-                    <li className="command-item" key={command.name}>
-                      <code>/{command.name}</code>
-                      <span>{command.description}</span>
-                    </li>
-                  ))}
-                </ul>
+                {commandCategories.map((category) => (
+                  <div key={category} className="command-group">
+                    <h3>{category}</h3>
+                    <ul className="command-list">
+                      {dashboard.commands
+                        .filter(
+                          (command) =>
+                            (command.category ?? 'Utilities') === category,
+                        )
+                        .map((command) => (
+                          <li className="command-item" key={command.name}>
+                            <code>/{command.name}</code>
+                            <span>{command.description}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                ))}
               </section>
             </>
           ) : myServers ? (

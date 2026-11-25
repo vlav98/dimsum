@@ -8,21 +8,16 @@ import {
   MessageFlags,
   SlashCommandBuilder,
 } from "discord.js";
-import { Command } from "../../interfaces/Command";
+import { Command } from "../../../interfaces/Command";
 import {
   deleteSavedPromptForUser,
   listSavedPromptsForUser,
   SavedPromptKind,
-} from "../../storage";
-import { promptKindLabels } from "../../savedPrompts";
+  savedPromptKinds,
+} from "../../../storage";
+import { promptKindLabels } from "../../../savedPrompts";
 
-const promptKinds: SavedPromptKind[] = [
-  "random",
-  "fanfic",
-  "otp",
-  "oc",
-  "other",
-];
+const promptKinds = savedPromptKinds;
 type PromptFilter = SavedPromptKind | "all";
 
 const savedPromptsData = new SlashCommandBuilder()
@@ -68,22 +63,27 @@ async function renderSavedPrompts(
   const prompt = prompts[page - 1];
   const customId = (action: string, kind: PromptFilter, targetPage: number) =>
     `saved-prompts:${action}:${interaction.user.id}:${kind}:${targetPage}`;
-  const filterButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    ...promptKinds.map((kind) =>
-      new ButtonBuilder()
-        .setCustomId(customId("filter", kind, 1))
-        .setLabel(
-          kind === "oc"
-            ? "OC"
-            : kind === "otp"
-              ? "OTP"
-              : promptKindLabels[kind],
-        )
-        .setStyle(
-          filter === kind ? ButtonStyle.Primary : ButtonStyle.Secondary,
+  const filterButtons: ActionRowBuilder<ButtonBuilder>[] = [];
+  for (let index = 0; index < promptKinds.length; index += 5) {
+    filterButtons.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        ...promptKinds.slice(index, index + 5).map((kind) =>
+          new ButtonBuilder()
+            .setCustomId(customId("filter", kind, 1))
+            .setLabel(
+              kind === "oc"
+                ? "OC"
+                : kind === "otp"
+                  ? "OTP"
+                  : promptKindLabels[kind],
+            )
+            .setStyle(
+              filter === kind ? ButtonStyle.Primary : ButtonStyle.Secondary,
+            ),
         ),
-    ),
-  );
+      ),
+    );
+  }
   const navigation = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(customId("filter", "all", 1))
@@ -135,7 +135,7 @@ async function renderSavedPrompts(
   await interaction.editReply({
     content: overflow ? prompt.content.slice(0, splitAt) : (notice ?? null),
     embeds: [embed],
-    components: [filterButtons, navigation],
+    components: [...filterButtons, navigation],
     allowedMentions: { parse: [] },
   });
 }
