@@ -140,6 +140,13 @@ export const name = generatedCommand(
 );
 
 export const antiWriterBlockCommands = [
-  prompt, oc, tag, twist, name,
-  randomPrompt, fanficPrompt, twoCharPrompt, RandomOCGenerator,
+  prompt,
+  oc,
+  tag,
+  twist,
+  name,
+  randomPrompt,
+  fanficPrompt,
+  twoCharPrompt,
+  RandomOCGenerator,
 ];

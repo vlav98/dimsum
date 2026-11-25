@@ -7,7 +7,7 @@ import {
   randomizeHeterochromia,
   randomizeSexuality,
   randomizeSpecies,
-} from "../commands/slashCommands/oc_generator/utils";
+} from "../commands/slashCommands/antiWriterBlock/ocGenerator/utils";
 
 export function pick<T>(items: readonly T[]): T {
   if (items.length === 0)

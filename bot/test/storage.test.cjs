@@ -9,7 +9,7 @@ require("tsconfig-paths/register");
 
 const storage = require("../src/storage");
 const { saveGeneratedPrompt, showSavedPrompt } = require("../src/savedPrompts");
-const { savedPrompts } = require("../src/commands/slashCommands/savedPrompts");
+const { savedPrompts } = require("../src/commands/slashCommands/personalCreations/savedPrompts");
 const { onMessageCommand } = require("../src/events/onMessageCommand");
 const { onInteraction } = require("../src/events/onInteraction");
 const { ChannelType, MessageFlags } = require("discord.js");

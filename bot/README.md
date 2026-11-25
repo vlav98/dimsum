@@ -83,11 +83,23 @@ reaction-role mappings, or saved prompts. Keep a backup of
 
 ### Command organization
 
-New commands live in themed `writing/`, `productivity/`, `community/`, and
-`creations/` folders under `src/commands/slashCommands`. Reusable generation
-logic lives in `src/generators/writing.ts`. `CommandGroups` in the slash-command
-index is the catalog used by registration, `/help`, and dashboard categories.
-Existing command modules and slash names remain compatible.
+All slash commands live in camelCase theme folders under
+`src/commands/slashCommands`:
+
+| Folder | Commands |
+| --- | --- |
+| `antiWriterBlock/` | `/prompt`, `/oc`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen` |
+| `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt` |
+| `serverGames/` | `/oc-duel`, `/matchup`, `/roulette` |
+| `personalCreations/` | `/adopt`, `/savedprompts` |
+| `administrationAndUtilities/` | `/writing-channel`, `/reactionroles`, `/help`, `/hello`, `/react` |
+
+Each theme's `index.ts` exports its command list. The parent `index.ts` combines
+them into `CommandGroups` and `CommandList`, used by registration, `/help`, and
+dashboard categories. OC generator helpers live in
+`antiWriterBlock/ocGenerator/utils`; reusable writing generation lives in
+`src/generators/writing.ts`. Discord slash-command names and behavior are
+unchanged.
 
 ## Random fanfic prompts
 
@@ -95,8 +107,8 @@ Use `/randomprompt` or `/fanficprompt`, optionally providing a ship name. Both
 select a prompt, setting, genre, and trope from the bot's built-in lists, then
 add three distinct AO3-inspired additional tags. Tags matching the selected
 genre or trope are excluded to avoid repetition. The tags are curated locally
-in `bot/src/commands/slashCommands/fanficTags.ts`; this does not connect to or
-copy data live from AO3.
+in `bot/src/commands/slashCommands/antiWriterBlock/fanficTags.ts`; this does not
+connect to or copy data live from AO3.
 
 Use the **Save prompt** button on generated prompt replies to save them in the
 dashboard. A saved prompt from a server is visible to its author and that

@@ -4,14 +4,14 @@ const { test } = require("node:test");
 require("ts-node/register");
 require("tsconfig-paths/register");
 
-const { RandomOCGenerator } = require("../src/commands/slashCommands/oc_generator/randomOCGenerator");
+const { RandomOCGenerator } = require("../src/commands/slashCommands/antiWriterBlock/ocGenerator/randomOCGenerator");
 const { Heterochromia } = require("../src/types/character/eyeColors");
-const { randomizeEyeColor } = require("../src/commands/slashCommands/oc_generator/utils/randomEyeColors");
-const { randomizeSpecies } = require("../src/commands/slashCommands/oc_generator/utils/randomSpecies");
+const { randomizeEyeColor } = require("../src/commands/slashCommands/antiWriterBlock/ocGenerator/utils/randomEyeColors");
+const { randomizeSpecies } = require("../src/commands/slashCommands/antiWriterBlock/ocGenerator/utils/randomSpecies");
 const {
   fanficPrompt,
   randomPrompt,
-} = require("../src/commands/slashCommands/randomPrompt");
+} = require("../src/commands/slashCommands/antiWriterBlock/randomPrompt");
 const { CommandList } = require("../src/commands");
 
 function withRandomValues(values, action) {
