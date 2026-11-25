@@ -14,6 +14,7 @@ import {
   removeReactionRoleMessage,
   saveReactionRoleMessage,
 } from "./storage";
+import { resolveReactionEmoji } from "./reactionEmojis";
 
 export class ReactionRoleSetupError extends Error {}
 
@@ -47,13 +48,17 @@ export function canBeReactionAssigned(
   );
 }
 
-export async function publishReactionRoleMessage(
+async function prepareReactionRoleMessage(
   client: Client,
   guildId: string,
   channelId: string,
   content: string,
   mappings: ReactionRoleMapping[],
-): Promise<{ messageId: string; channelId: string; createdAt: string }> {
+) {
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) {
+    throw new ReactionRoleSetupError("The bot is not in this server.");
+  }
   const trimmedContent = content.trim();
   if (!trimmedContent || trimmedContent.length > 2000) {
     throw new ReactionRoleSetupError(
@@ -66,26 +71,28 @@ export async function publishReactionRoleMessage(
     );
   }
 
-  const normalizedMappings = mappings.map(({ emoji, roleId }) => ({
-    emoji: emoji.trim(),
-    roleId,
-  }));
+  const normalizedMappings = mappings.map(({ emoji, roleId }) => {
+    const resolved = resolveReactionEmoji(guild, emoji);
+    if (resolved === null) {
+      throw new ReactionRoleSetupError(
+        `Unknown or ambiguous emoji code ${emoji}. Choose an emoji from the picker.`,
+      );
+    }
+    return { emoji: resolved, roleId };
+  });
   if (
     normalizedMappings.some(
       ({ emoji, roleId }) =>
         !emoji || emoji.length > 100 || !/^\d{17,20}$/.test(roleId),
     )
   ) {
-    throw new ReactionRoleSetupError("Each mapping needs a valid emoji and role.");
+    throw new ReactionRoleSetupError(
+      "Each mapping needs a valid emoji and role.",
+    );
   }
   const emojiKeys = normalizedMappings.map(({ emoji }) => emojiKey(emoji));
   if (new Set(emojiKeys).size !== emojiKeys.length) {
     throw new ReactionRoleSetupError("Each reaction emoji must be unique.");
-  }
-
-  const guild = client.guilds.cache.get(guildId);
-  if (!guild) {
-    throw new ReactionRoleSetupError("The bot is not in this server.");
   }
 
   const channel = guild.channels.cache.get(channelId);
@@ -113,7 +120,9 @@ export async function publishReactionRoleMessage(
     );
   }
   if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
-    throw new ReactionRoleSetupError("The bot needs the Manage Roles permission.");
+    throw new ReactionRoleSetupError(
+      "The bot needs the Manage Roles permission.",
+    );
   }
 
   for (const { roleId } of normalizedMappings) {
@@ -128,6 +137,24 @@ export async function publishReactionRoleMessage(
     }
   }
 
+  return { channel, trimmedContent, normalizedMappings, botMember };
+}
+
+export async function publishReactionRoleMessage(
+  client: Client,
+  guildId: string,
+  channelId: string,
+  content: string,
+  mappings: ReactionRoleMapping[],
+): Promise<{ messageId: string; channelId: string; createdAt: string }> {
+  const { channel, trimmedContent, normalizedMappings } =
+    await prepareReactionRoleMessage(
+      client,
+      guildId,
+      channelId,
+      content,
+      mappings,
+    );
   const message = await channel.send({
     content: trimmedContent,
     allowedMentions: { parse: [] },
@@ -148,9 +175,82 @@ export async function publishReactionRoleMessage(
     return { messageId: message.id, channelId, createdAt };
   } catch (error) {
     await message.delete().catch((deleteError: unknown) => {
-      console.error("Could not remove incomplete reaction-role message:", deleteError);
+      console.error(
+        "Could not remove incomplete reaction-role message:",
+        deleteError,
+      );
     });
     throw error;
+  }
+}
+
+export async function editReactionRoleMessage(
+  client: Client,
+  guildId: string,
+  messageId: string,
+  content: string,
+  mappings: ReactionRoleMapping[],
+): Promise<void> {
+  const configured = await findReactionRoleMessage(messageId);
+  if (!configured || configured.guildId !== guildId) {
+    throw new ReactionRoleSetupError("Reaction-role message not found.");
+  }
+  const { channel, trimmedContent, normalizedMappings, botMember } =
+    await prepareReactionRoleMessage(
+      client,
+      guildId,
+      configured.channelId,
+      content,
+      mappings,
+    );
+  if (
+    !channel
+      .permissionsFor(botMember)
+      ?.has(PermissionFlagsBits.ReadMessageHistory)
+  ) {
+    throw new ReactionRoleSetupError(
+      "The bot needs Read Message History to edit this message.",
+    );
+  }
+  const message = await channel.messages
+    .fetch(messageId)
+    .catch((error: unknown) => {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === 10008
+      ) {
+        throw new ReactionRoleSetupError(
+          "This message was deleted from Discord. Delete its configuration and publish a new message.",
+        );
+      }
+      throw error;
+    });
+  if (message.author.id !== client.user?.id) {
+    throw new ReactionRoleSetupError(
+      "Only the bot's own messages can be edited.",
+    );
+  }
+  for (const { emoji } of normalizedMappings) await message.react(emoji);
+  await message.edit({
+    content: trimmedContent,
+    allowedMentions: { parse: [] },
+  });
+  await saveReactionRoleMessage({
+    ...configured,
+    content: trimmedContent,
+    mappings: normalizedMappings,
+  });
+  const retained = new Set(
+    normalizedMappings.map(({ emoji }) => emojiKey(emoji)),
+  );
+  for (const { emoji } of configured.mappings) {
+    if (retained.has(emojiKey(emoji))) continue;
+    const reaction = message.reactions.cache.find((entry) =>
+      reactionMatches(emoji, entry),
+    );
+    if (reaction?.me) await reaction.users.remove(message.author.id);
   }
 }
 
@@ -173,12 +273,19 @@ export async function deleteReactionRoleMessage(
     return;
   }
 
-  const message = await channel.messages.fetch(messageId).catch((error: unknown) => {
-    if (error && typeof error === "object" && "code" in error && error.code === 10008) {
-      return null;
-    }
-    throw error;
-  });
+  const message = await channel.messages
+    .fetch(messageId)
+    .catch((error: unknown) => {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === 10008
+      ) {
+        return null;
+      }
+      throw error;
+    });
   if (message) await message.delete();
   await removeReactionRoleMessage(messageId);
 }
@@ -206,10 +313,9 @@ export async function applyReactionRole(
   const memberUser = user.partial ? await user.fetch() : user;
 
   const fullReaction = reaction.partial ? await reaction.fetch() : reaction;
-  const message =
-    fullReaction.message.partial
-      ? await fullReaction.message.fetch()
-      : fullReaction.message;
+  const message = fullReaction.message.partial
+    ? await fullReaction.message.fetch()
+    : fullReaction.message;
   const configured = await findReactionRoleMessage(message.id);
   if (!configured) return;
 

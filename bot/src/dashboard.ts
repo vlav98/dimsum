@@ -13,10 +13,14 @@ import { CommandList } from "./commands";
 import {
   canBeReactionAssigned,
   deleteReactionRoleMessage,
+  editReactionRoleMessage,
   publishReactionRoleMessage,
   ReactionRoleSetupError,
 } from "./reactionRoles";
+import { listReactionEmojis } from "./reactionEmojis";
 import {
+  deleteSavedPromptForGuild,
+  deleteSavedPromptForUser,
   getDefaultPrefix,
   getGuildPrefix,
   listReactionRoleMessages,
@@ -90,9 +94,10 @@ async function retryDelayMs(response: Response): Promise<number | null> {
     return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : null;
   }
 
-  const payload = (await response.clone().json().catch(() => null)) as
-    | { retry_after?: unknown }
-    | null;
+  const payload = (await response
+    .clone()
+    .json()
+    .catch(() => null)) as { retry_after?: unknown } | null;
   return typeof payload?.retry_after === "number" &&
     Number.isFinite(payload.retry_after) &&
     payload.retry_after >= 0
@@ -269,10 +274,14 @@ function getRouteParam(req: Request, name: string): string {
 }
 
 export async function startDashboardServer(
-  client: Client
+  client: Client,
 ): Promise<Server | undefined> {
-  const { APP_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, SESSION_SECRET } =
-    process.env;
+  const {
+    APP_ID,
+    DISCORD_CLIENT_SECRET,
+    DISCORD_REDIRECT_URI,
+    SESSION_SECRET,
+  } = process.env;
   const missingSettings = [
     ["APP_ID", APP_ID],
     ["DISCORD_CLIENT_SECRET", DISCORD_CLIENT_SECRET],
@@ -284,7 +293,7 @@ export async function startDashboardServer(
 
   if (missingSettings.length > 0) {
     console.warn(
-      `Dashboard disabled; configure ${missingSettings.join(", ")} in bot/.env.`
+      `Dashboard disabled; configure ${missingSettings.join(", ")} in bot/.env.`,
     );
     return;
   }
@@ -315,7 +324,7 @@ export async function startDashboardServer(
         secure: isProduction,
         maxAge: sessionMaxAgeMs,
       },
-    })
+    }),
   );
   app.use(express.json({ limit: "16kb" }));
 
@@ -343,7 +352,9 @@ export async function startDashboardServer(
     const state = typeof req.query.state === "string" ? req.query.state : "";
     const code = typeof req.query.code === "string" ? req.query.code : "";
     if (!state || state !== req.session.oauthState || !code) {
-      res.status(400).send("Discord sign-in could not be verified. Please retry.");
+      res
+        .status(400)
+        .send("Discord sign-in could not be verified. Please retry.");
       return;
     }
 
@@ -360,7 +371,9 @@ export async function startDashboardServer(
         }),
       });
       if (!tokenResponse.ok) {
-        throw new Error(`Discord token exchange failed (${tokenResponse.status}).`);
+        throw new Error(
+          `Discord token exchange failed (${tokenResponse.status}).`,
+        );
       }
 
       const tokenPayload = (await tokenResponse.json()) as {
@@ -374,7 +387,9 @@ export async function startDashboardServer(
         headers: { Authorization: `Bearer ${tokenPayload.access_token}` },
       });
       if (!userResponse.ok) {
-        throw new Error(`Discord profile request failed (${userResponse.status}).`);
+        throw new Error(
+          `Discord profile request failed (${userResponse.status}).`,
+        );
       }
 
       const profile = (await userResponse.json()) as {
@@ -446,7 +461,7 @@ export async function startDashboardServer(
       CommandList.map(({ data }) => ({
         name: data.name,
         description: data.description,
-      }))
+      })),
     );
   });
 
@@ -458,23 +473,17 @@ export async function startDashboardServer(
       );
 
       res.json(
-        guilds
-          .filter((guild) => {
-            const permissions = BigInt(guild.permissions);
-            const noPermissions = BigInt(0);
-            return (
-              (permissions & BigInt(PermissionFlagsBits.ManageGuild)) !==
-                noPermissions ||
-              (permissions & BigInt(PermissionFlagsBits.Administrator)) !==
-                noPermissions
-            );
-          })
-          .map(({ id, name, icon }) => ({
-            id,
-            name,
-            icon,
-            botPresent: client.guilds.cache.has(id),
-          }))
+        guilds.map(({ id, name, icon, permissions }) => ({
+          id,
+          name,
+          icon,
+          botPresent: client.guilds.cache.has(id),
+          canManage:
+            (BigInt(permissions) &
+              (PermissionFlagsBits.ManageGuild |
+                PermissionFlagsBits.Administrator)) !==
+            BigInt(0),
+        })),
       );
     } catch (error) {
       if (respondToGuildListError(req, res, error)) return;
@@ -489,6 +498,52 @@ export async function startDashboardServer(
       next(error);
     }
   });
+
+  app.delete(
+    "/api/me/saved-prompts/:promptId",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const deleted = await deleteSavedPromptForUser(
+          req.session.user!.id,
+          getRouteParam(req, "promptId"),
+        );
+        if (!deleted) {
+          res
+            .status(404)
+            .json({ error: "Saved prompt not found in your library." });
+          return;
+        }
+        res.status(204).end();
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.delete(
+    "/api/guilds/:guildId/saved-prompts/:promptId",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const deleted = await deleteSavedPromptForGuild(
+          guildId,
+          getRouteParam(req, "promptId"),
+        );
+        if (!deleted) {
+          res
+            .status(404)
+            .json({ error: "Saved prompt not found in this server." });
+          return;
+        }
+        res.status(204).end();
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   app.get(
     "/api/guilds/:guildId/saved-prompts",
@@ -540,7 +595,8 @@ export async function startDashboardServer(
           /[\s@/<>]/u.test(prefix)
         ) {
           res.status(400).json({
-            error: "Prefix must be 1–5 characters and cannot contain spaces, mentions, or slashes.",
+            error:
+              "Prefix must be 1–5 characters and cannot contain spaces, mentions, or slashes.",
           });
           return;
         }
@@ -580,30 +636,53 @@ export async function startDashboardServer(
           return;
         }
         const botMember = guild.members.me ?? (await guild.members.fetchMe());
-        const channels = [...guild.channels.cache.values()].flatMap((channel) => {
-          if (
-            channel.type !== ChannelType.GuildText &&
-            channel.type !== ChannelType.GuildAnnouncement
-          ) {
-            return [];
-          }
-          const permissions = channel.permissionsFor(botMember);
-          if (
-            !permissions?.has([
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-              PermissionFlagsBits.AddReactions,
-            ])
-          ) {
-            return [];
-          }
-          return [{
-            id: channel.id,
-            name: channel.name,
-            category: channel.parent?.name ?? null,
-          }];
-        });
+        const channels = [...guild.channels.cache.values()].flatMap(
+          (channel) => {
+            if (
+              channel.type !== ChannelType.GuildText &&
+              channel.type !== ChannelType.GuildAnnouncement
+            ) {
+              return [];
+            }
+            const permissions = channel.permissionsFor(botMember);
+            if (
+              !permissions?.has([
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.SendMessages,
+                PermissionFlagsBits.AddReactions,
+              ])
+            ) {
+              return [];
+            }
+            return [
+              {
+                id: channel.id,
+                name: channel.name,
+                category: channel.parent?.name ?? null,
+              },
+            ];
+          },
+        );
         res.json(channels);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/emojis",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        res.json(listReactionEmojis(guild));
       } catch (error) {
         next(error);
       }
@@ -629,9 +708,8 @@ export async function startDashboardServer(
         }
         res.json(
           guild.roles.cache
-            .filter(
-              (role) =>
-                canBeReactionAssigned(role, botMember.roles.highest.position),
+            .filter((role) =>
+              canBeReactionAssigned(role, botMember.roles.highest.position),
             )
             .sort((left, right) => right.position - left.position)
             .map((role) => ({
@@ -678,7 +756,8 @@ export async function startDashboardServer(
         const mappings = parseMappings(req.body?.mappings);
         if (!channelId || !content || !mappings) {
           res.status(400).json({
-            error: "Provide a channel, message text, and 1–10 emoji-role mappings.",
+            error:
+              "Provide a channel, message text, and 1–10 emoji-role mappings.",
           });
           return;
         }
@@ -720,6 +799,42 @@ export async function startDashboardServer(
     },
   );
 
+  app.put(
+    "/api/guilds/:guildId/reaction-roles/:messageId",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const content =
+          typeof req.body?.content === "string" ? req.body.content : "";
+        const mappings = parseMappings(req.body?.mappings);
+        if (!content || !mappings) {
+          res
+            .status(400)
+            .json({
+              error: "Provide message text and 1–10 emoji-role mappings.",
+            });
+          return;
+        }
+        await editReactionRoleMessage(
+          client,
+          guildId,
+          getRouteParam(req, "messageId"),
+          content,
+          mappings,
+        );
+        res.status(204).end();
+      } catch (error) {
+        if (error instanceof ReactionRoleSetupError) {
+          res.status(400).json({ error: error.message });
+          return;
+        }
+        next(error);
+      }
+    },
+  );
+
   if (isProduction) {
     const dashboardDist = path.resolve(__dirname, "../../dashboard/dist");
     const dashboardIndex = path.join(dashboardDist, "index.html");
@@ -752,7 +867,7 @@ export async function startDashboardServer(
       }
       console.error("Dashboard request failed:", error);
       res.status(500).json({ error: "Dashboard request failed." });
-    }
+    },
   );
 
   return new Promise<Server>((resolve, reject) => {

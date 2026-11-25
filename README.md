@@ -72,17 +72,28 @@ Open <http://localhost:5173> and choose **Continue with Discord**. The Vite
 development server forwards `/api` requests to the bot API on port 3001.
 `DASHBOARD_PORT` and `DASHBOARD_ORIGIN` can override those local defaults.
 
-The dashboard lists servers where your account has Manage Server or
-Administrator permissions. From a server's panel, managers can set that
-server's message prefix and create/delete reaction-role messages. The bot needs
+The dashboard's sidebar separates **Overview** (bot status and commands) from
+**My servers**, which lists only servers where you have Manage Server or
+Administrator permission. The entire server card opens its settings when
+DimSum is present; cards without the bot are disabled. Each shared server has
+separate settings and saved-prompts pages.
+Managers can set the server prefix and create, edit, or delete
+reaction-role messages. The channel selector supports search; the emoji picker
+offers default and server emojis, and also accepts Unicode or `:emoji_name:`
+codes. Editing a message keeps it in its original channel. The bot needs
 Manage Roles, access to the selected text channel, and a role hierarchy above
-the roles being offered. The `/reactionroles` slash command provides the same
+the roles being offered. Editing also needs Read Message History.
+The `/reactionroles` slash command provides the same
 message-creation feature inside Discord. The bot adds a role when a member
 reacts and removes it when they remove their reaction.
 
 Generated prompts include a **Save prompt** button. Users can view their own
 saved prompts in the dashboard; managers can also view prompts saved from the
-server they manage. OC generator results can also be saved. In Discord, use
+server they manage. **Saved in …** has **My prompts** and **Server prompts**
+tabs, both with type filters and deletion controls. Managers may delete any
+save originating in that server; users may delete their own saves. DM saves
+remain private and are available through **My saved prompts** in the main
+navigation. OC generator results can also be saved. In Discord, use
 `/savedprompts` to browse your saves, with optional `kind` and `page` filters;
 the private browser shows one prompt per page, with type-filter buttons,
 **Previous**/**Next** navigation, and **Delete** to remove your current save.

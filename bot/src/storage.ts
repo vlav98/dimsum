@@ -228,6 +228,20 @@ export function deleteSavedPromptForUser(
   });
 }
 
+export function deleteSavedPromptForGuild(
+  guildId: string,
+  promptId: string,
+): Promise<boolean> {
+  return updateData((data) => {
+    const index = data.savedPrompts.findIndex(
+      (prompt) => prompt.guildId === guildId && prompt.id === promptId,
+    );
+    if (index === -1) return false;
+    data.savedPrompts.splice(index, 1);
+    return true;
+  });
+}
+
 export async function listSavedPromptsForGuild(
   guildId: string,
 ): Promise<SavedPrompt[]> {

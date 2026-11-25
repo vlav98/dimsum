@@ -23,6 +23,13 @@ The dashboard stores per-server prefixes, reaction-role message mappings, and
 saved prompts in `bot/data/dashboard-data.json`. Keep this file private and
 back it up if you need to preserve those settings. Manage Server permission is
 required to change a server's dashboard settings.
+The dashboard's **My servers** page lists servers where a user has Administrator
+or Manage Server permission. Server-wide saved prompts and settings remain
+restricted to managers. Managers may delete saves from their
+own server; users may delete their own saves, including private DM saves.
+Reaction-role messages can be edited in place in the dashboard. Emoji inputs
+accept Unicode, custom emoji mentions, and known default/server `:name:` codes.
+The bot needs Read Message History to edit existing messages.
 
 ## Random fanfic prompts
 

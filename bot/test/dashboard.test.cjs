@@ -8,11 +8,22 @@ require("ts-node/register");
 require("tsconfig-paths/register");
 
 const { startDashboardServer } = require("../src/dashboard");
-const { savePrompt } = require("../src/storage");
+const {
+  savePrompt,
+  saveReactionRoleMessage,
+  listReactionRoleMessages,
+  listSavedPromptsForUser,
+} = require("../src/storage");
+const {
+  Collection,
+  ChannelType,
+  PermissionsBitField,
+  PermissionFlagsBits,
+} = require("discord.js");
 
 const request = globalThis.fetch.bind(globalThis);
 
-test("dashboard OAuth protects API data and returns manageable servers", async () => {
+test("dashboard lists all user servers and scopes settings, emoji editing, and prompt deletion", async () => {
   const envKeys = [
     "APP_ID",
     "DISCORD_CLIENT_SECRET",
@@ -86,21 +97,113 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
             icon: null,
             permissions: "0",
           },
+          {
+            id: "guild-3",
+            name: "Another managed server",
+            icon: null,
+            permissions: String(1n << 5n),
+          },
         ],
       };
     }
     throw new Error(`Unexpected Discord API request: ${url}`);
   };
 
+  const roleId = "12345678901234567";
+  const emojiId = "22345678901234567";
+  const botMember = {
+    permissions: new PermissionsBitField(PermissionFlagsBits.ManageRoles),
+    roles: { highest: { position: 5 } },
+  };
+  const reactions = [];
+  let editedContent;
+  let removedReaction = false;
+  let deletedMessage = false;
+  const message = {
+    id: "message-roles",
+    author: { id: "bot-id" },
+    react: async (emoji) => {
+      reactions.push(emoji);
+    },
+    edit: async ({ content }) => {
+      editedContent = content;
+    },
+    delete: async () => {
+      deletedMessage = true;
+    },
+    reactions: {
+      cache: new Collection([
+        [
+          "old",
+          {
+            emoji: { id: null, name: "👍" },
+            me: true,
+            users: {
+              remove: async () => {
+                removedReaction = true;
+              },
+            },
+          },
+        ],
+      ]),
+    },
+  };
+  const channel = {
+    id: "channel-1",
+    name: "general",
+    parent: null,
+    type: ChannelType.GuildText,
+    permissionsFor: () =>
+      new PermissionsBitField([
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AddReactions,
+        PermissionFlagsBits.ReadMessageHistory,
+      ]),
+    messages: { fetch: async () => message },
+    send: async () => message,
+  };
+  const guild = {
+    members: { me: botMember },
+    channels: { cache: new Collection([["channel-1", channel]]) },
+    roles: {
+      cache: new Collection([
+        [
+          roleId,
+          {
+            id: roleId,
+            name: "Member",
+            hexColor: "#ffffff",
+            managed: false,
+            guild: { id: "guild-1" },
+            position: 1,
+            permissions: new PermissionsBitField(0n),
+          },
+        ],
+      ]),
+    },
+    emojis: {
+      cache: new Collection([
+        [
+          emojiId,
+          {
+            id: emojiId,
+            name: "dimsum",
+            available: true,
+            toString: () => `<:dimsum:${emojiId}>`,
+            imageURL: () => `https://cdn.discordapp.com/emojis/${emojiId}.png`,
+          },
+        ],
+      ]),
+    },
+  };
   const client = {
     isReady: () => true,
-    user: { username: "DimSum" },
+    user: { id: "bot-id", username: "DimSum" },
     guilds: {
-      cache: {
-        size: 1,
-        has: (guildId) => guildId === "guild-1",
-      },
+      cache: new Collection([["guild-1", guild]]),
     },
+    channels: { cache: new Collection([["channel-1", channel]]) },
     uptime: 60_000,
   };
 
@@ -116,6 +219,32 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
       guildName: "Managed server",
       kind: "random",
       content: "A saved prompt",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    for (const [id, guildId] of [
+      ["other-user:server-save", "guild-1"],
+      ["other-user:elsewhere", "guild-3"],
+      ["other-user:dm", null],
+    ]) {
+      await savePrompt({
+        id,
+        sourceMessageId: id,
+        guildId,
+        userId: "other-user",
+        username: "other",
+        displayName: "Other",
+        guildName: guildId,
+        kind: "oc",
+        content: "Someone else's save",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      });
+    }
+    await saveReactionRoleMessage({
+      guildId: "guild-1",
+      channelId: "channel-1",
+      messageId: "message-roles",
+      content: "Choose your role",
+      mappings: [{ emoji: "👍", roleId }],
       createdAt: "2026-01-01T00:00:00.000Z",
     });
     server = await startDashboardServer(client);
@@ -172,9 +301,24 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
         name: "Managed server",
         icon: null,
         botPresent: true,
+        canManage: true,
+      },
+      {
+        id: "guild-2",
+        name: "Unmanaged server",
+        icon: null,
+        botPresent: false,
+        canManage: false,
+      },
+      {
+        id: "guild-3",
+        name: "Another managed server",
+        icon: null,
+        botPresent: false,
+        canManage: true,
       },
     ]);
-    assert.equal((await adminPromptsResponse.json()).length, 1);
+    assert.equal((await adminPromptsResponse.json()).length, 2);
     assert.deepEqual(await settingsResponse.json(), {
       prefix: "!",
       isCustom: false,
@@ -208,6 +352,182 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
       prefix: "??",
       isCustom: true,
     });
+
+    const change = (route, method, body) =>
+      request(`${baseUrl}${route}`, {
+        method,
+        headers: {
+          Cookie: authenticatedCookie,
+          "Content-Type": "application/json",
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+    const emojisResponse = await request(
+      `${baseUrl}/api/guilds/guild-1/emojis`,
+      cookieOptions,
+    );
+    const emojis = await emojisResponse.json();
+    assert.ok(
+      emojis.some((emoji) => emoji.name === "heart" && emoji.value === "❤️"),
+    );
+    assert.ok(
+      emojis.some(
+        (emoji) =>
+          emoji.name === "dimsum" && emoji.value === `<:dimsum:${emojiId}>`,
+      ),
+    );
+    assert.equal(
+      (await request(`${baseUrl}/api/guilds/guild-2/emojis`, cookieOptions))
+        .status,
+      403,
+    );
+    const updateBody = {
+      content: "Updated role message",
+      mappings: [
+        { emoji: ":heart:", roleId },
+        { emoji: ":dimsum:", roleId },
+      ],
+    };
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-2/reaction-roles/message-roles",
+          "PUT",
+          updateBody,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-3/reaction-roles/message-roles",
+          "PUT",
+          updateBody,
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-1/reaction-roles/message-roles",
+          "PUT",
+          { ...updateBody, mappings: [{ emoji: ":does_not_exist:", roleId }] },
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-1/reaction-roles/message-roles",
+          "PUT",
+          {
+            ...updateBody,
+            mappings: [
+              { emoji: ":heart:", roleId },
+              { emoji: "❤️", roleId },
+            ],
+          },
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-1/reaction-roles/message-roles",
+          "PUT",
+          updateBody,
+        )
+      ).status,
+      204,
+    );
+    assert.equal(editedContent, "Updated role message");
+    assert.deepEqual(reactions, ["❤️", `<:dimsum:${emojiId}>`]);
+    assert.equal(removedReaction, true);
+    const edited = (await listReactionRoleMessages("guild-1"))[0];
+    assert.equal(edited.content, updateBody.content);
+    assert.equal(edited.channelId, "channel-1");
+    assert.deepEqual(
+      edited.mappings.map(({ emoji }) => emoji),
+      reactions,
+    );
+
+    assert.equal(
+      (await change("/api/me/saved-prompts/other-user%3Aserver-save", "DELETE"))
+        .status,
+      404,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-2/saved-prompts/other-user%3Aserver-save",
+          "DELETE",
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-1/saved-prompts/other-user%3Aelsewhere",
+          "DELETE",
+        )
+      ).status,
+      404,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-1/saved-prompts/other-user%3Adm",
+          "DELETE",
+        )
+      ).status,
+      404,
+    );
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-1/saved-prompts/other-user%3Aserver-save",
+          "DELETE",
+        )
+      ).status,
+      204,
+    );
+    assert.equal((await listSavedPromptsForUser("other-user")).length, 2);
+    assert.equal(
+      (await change("/api/me/saved-prompts/user-1%3Amessage-1", "DELETE"))
+        .status,
+      204,
+    );
+    assert.equal((await listSavedPromptsForUser("user-1")).length, 0);
+    assert.equal(
+      (
+        await change(
+          "/api/guilds/guild-1/reaction-roles/message-roles",
+          "DELETE",
+        )
+      ).status,
+      204,
+    );
+    assert.equal(deletedMessage, true);
+    assert.deepEqual(await listReactionRoleMessages("guild-1"), []);
+    assert.equal(
+      (
+        await change("/api/guilds/guild-1/reaction-roles", "POST", {
+          channelId: "channel-1",
+          content: "Published from a code",
+          mappings: [{ emoji: ":dimsum:", roleId }],
+        })
+      ).status,
+      201,
+    );
+    assert.equal(
+      (await listReactionRoleMessages("guild-1"))[0].mappings[0].emoji,
+      `<:dimsum:${emojiId}>`,
+    );
   } finally {
     globalThis.fetch = originalFetch;
     if (server) {
