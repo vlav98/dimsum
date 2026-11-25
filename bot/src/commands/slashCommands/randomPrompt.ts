@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { Command } from "../../interfaces/Command";
 import { getRandomAdditionalTags } from "./fanficTags";
+import { savePromptButton } from "../../promptComponents";
 
 var phrases = [
   "A stressful case/mission rattles the [characters] and/or clues them in.",
@@ -218,6 +219,7 @@ function getPrompt() {
 async function runPromptGenerator(
   interaction: ChatInputCommandInteraction,
   defaultTitle: string,
+  kind: "random" | "fanfic",
 ): Promise<void> {
   try {
     await interaction.deferReply();
@@ -260,6 +262,7 @@ async function runPromptGenerator(
 
     await interaction.editReply({
       embeds: [promptEmbed],
+      components: [savePromptButton(kind)],
     });
   } catch (error) {
     console.error(error);
@@ -270,6 +273,7 @@ function createPromptCommand(
   name: string,
   description: string,
   defaultTitle: string,
+  kind: "random" | "fanfic",
 ): Command {
   return {
     data: new SlashCommandBuilder()
@@ -281,7 +285,7 @@ function createPromptCommand(
           .setDescription("Ship name to generate a prompt for")
           .setRequired(false),
       ),
-    run: (interaction) => runPromptGenerator(interaction, defaultTitle),
+    run: (interaction) => runPromptGenerator(interaction, defaultTitle, kind),
   };
 }
 
@@ -289,10 +293,12 @@ export const randomPrompt = createPromptCommand(
   "randomprompt",
   "Generates a random prompt",
   "Random Prompt Generator",
+  "random",
 );
 
 export const fanficPrompt = createPromptCommand(
   "fanficprompt",
   "Generates a fanfic prompt with AO3-style tags",
   "Random Fanfic Prompt Generator",
+  "fanfic",
 );

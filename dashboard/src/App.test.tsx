@@ -2,6 +2,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
+function jsonResponse(data: unknown, status = 200): Response {
+  return {
+    status,
+    ok: status >= 200 && status < 300,
+    json: async () => data,
+  } as Response;
+}
+
 describe('dashboard', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
@@ -12,10 +20,7 @@ describe('dashboard', () => {
   });
 
   test('offers Discord sign-in when the user has no session', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      status: 401,
-      ok: false,
-    } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({}, 401));
 
     render(<App />);
 
@@ -23,45 +28,59 @@ describe('dashboard', () => {
       .toHaveAttribute('href', '/api/auth/login');
   });
 
-  test('shows bot status, selectable server presence, and slash commands', async () => {
-    vi.mocked(fetch)
-      .mockResolvedValueOnce({
-        status: 200,
-        ok: true,
-        json: async () => ({
+  test('shows bot status, server controls, and saved prompt sections', async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === '/api/me') {
+        return jsonResponse({
           id: 'user-1',
           username: 'test-user',
           displayName: 'Test User',
           avatar: null,
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
+        });
+      }
+      if (url === '/api/status') {
+        return jsonResponse({
           online: true,
           username: 'DimSum',
           guildCount: 2,
           uptimeMs: 3_900_000,
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [
+        });
+      }
+      if (url === '/api/guilds') {
+        return jsonResponse([
           { id: 'guild-1', name: 'Test Server', icon: null, botPresent: true },
-        ],
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [
-          { name: 'fanficprompt', description: 'Generate a fanfic prompt' },
-        ],
-      } as Response);
+        ]);
+      }
+      if (url === '/api/commands') {
+        return jsonResponse([
+          { name: 'reactionroles', description: 'Create a reaction-role message' },
+        ]);
+      }
+      if (url === '/api/me/saved-prompts') return jsonResponse([]);
+      if (url.endsWith('/settings')) {
+        return jsonResponse({ prefix: '!', isCustom: false });
+      }
+      if (url.endsWith('/saved-prompts')) return jsonResponse([]);
+      if (url.endsWith('/reaction-roles')) return jsonResponse([]);
+      if (url.endsWith('/channels')) {
+        return jsonResponse([{ id: 'channel-1', name: 'general', category: null }]);
+      }
+      if (url.endsWith('/roles')) {
+        return jsonResponse([{ id: 'role-1', name: 'Member', color: '#ffffff' }]);
+      }
+      throw new Error(`Unexpected dashboard request: ${url}`);
+    });
 
     render(<App />);
 
     expect(await screen.findByText('Online')).toBeInTheDocument();
     expect(screen.getByLabelText('Select a server')).toHaveValue('guild-1');
-    expect(screen.getByText('DimSum is in this server')).toBeInTheDocument();
-    expect(screen.getByText('/fanficprompt')).toBeInTheDocument();
+    expect(screen.getByLabelText('Prefix (1–5 characters)')).toHaveValue('!');
+    expect(await screen.findByRole('heading', { name: 'Create reaction-role message' }))
+      .toBeInTheDocument();
+    expect(screen.getByLabelText('Emoji 1')).toBeInTheDocument();
+    expect(screen.getByText('My saved prompts')).toBeInTheDocument();
+    expect(screen.getByText('/reactionroles')).toBeInTheDocument();
   });
 });

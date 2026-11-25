@@ -4,6 +4,8 @@ import { help } from "./help";
 import { RandomOCGenerator } from "./oc_generator/randomOCGenerator";
 import { fanficPrompt, randomPrompt } from "./randomPrompt";
 import { react } from "./react";
+import { reactionRoles } from "./reactionRoles";
+import { savedPrompts } from "./savedPrompts";
 import { twoCharPrompt } from "./twoCharPrompt";
 
 export const CommandList: Command[] = [
@@ -12,6 +14,8 @@ export const CommandList: Command[] = [
   twoCharPrompt,
   randomPrompt,
   fanficPrompt,
+  reactionRoles,
+  savedPrompts,
   react,
   RandomOCGenerator,
 ];

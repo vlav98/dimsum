@@ -4,6 +4,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { Command } from "../../interfaces/Command";
+import { savePromptButton } from "../../promptComponents";
 
 const prompts = [
   "Them resting together and talking to each other before falling asleep.",
@@ -252,6 +253,7 @@ export const twoCharPrompt: Command = {
 
     await interaction.editReply({
       embeds: [randomPromptEmbed],
+      components: [savePromptButton("otp")],
     });
   },
 };

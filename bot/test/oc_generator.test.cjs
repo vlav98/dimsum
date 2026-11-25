@@ -28,10 +28,12 @@ function withRandomValues(values, action) {
 
 test("OC generator includes every defined character trait", async () => {
   let reply;
+  let response;
   await RandomOCGenerator.run({
     deferReply: async () => {},
-    editReply: async ({ embeds }) => {
+    editReply: async ({ embeds, components }) => {
       reply = embeds[0];
+      response = { components };
     },
   });
 
@@ -46,6 +48,10 @@ test("OC generator includes every defined character trait", async () => {
       "Eye color",
       "Heterochromia",
     ],
+  );
+  assert.equal(
+    response.components[0].toJSON().components[0].custom_id,
+    "save-generated-prompt:oc",
   );
 });
 
@@ -67,13 +73,15 @@ test("half-species generation chooses two distinct sub-species", () => {
 
 test("random fanfic prompts include three unique AO3-style additional tags", async () => {
   let reply;
+  let response;
   await randomPrompt.run({
     deferReply: async () => {},
     options: {
       getString: () => null,
     },
-    editReply: async ({ embeds }) => {
+    editReply: async ({ embeds, components }) => {
       reply = embeds[0];
+      response = { components };
     },
   });
 
@@ -84,6 +92,10 @@ test("random fanfic prompts include three unique AO3-style additional tags", asy
 
   assert.equal(additionalTags.length, 3);
   assert.equal(new Set(additionalTags).size, 3);
+  assert.equal(
+    response.components[0].toJSON().components[0].custom_id,
+    "save-generated-prompt:random",
+  );
 });
 
 test("fanficprompt is registered as a separate slash command", async () => {
@@ -103,4 +115,16 @@ test("fanficprompt is registered as a separate slash command", async () => {
   });
 
   assert.equal(reply.toJSON().title, "Random Fanfic Prompt Generator");
+});
+
+test("reactionroles is registered with Discord's option limit respected", () => {
+  const command = CommandList.find(({ data }) => data.name === "reactionroles");
+  assert.ok(command);
+  assert.ok(command.data.toJSON().options.length <= 25);
+});
+
+test("savedprompts is registered with kind filtering and pagination", () => {
+  const command = CommandList.find(({ data }) => data.name === "savedprompts");
+  assert.ok(command);
+  assert.equal(command.data.toJSON().options.length, 2);
 });

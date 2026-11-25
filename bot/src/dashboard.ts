@@ -2,10 +2,29 @@ import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Server } from "node:http";
 import path from "node:path";
-import express, { type NextFunction, type Request, type Response } from "express";
+import express, {
+  type NextFunction,
+  type Request,
+  type Response as ExpressResponse,
+} from "express";
 import session from "express-session";
-import { Client, PermissionFlagsBits } from "discord.js";
+import { ChannelType, Client, PermissionFlagsBits } from "discord.js";
 import { CommandList } from "./commands";
+import {
+  canBeReactionAssigned,
+  deleteReactionRoleMessage,
+  publishReactionRoleMessage,
+  ReactionRoleSetupError,
+} from "./reactionRoles";
+import {
+  getDefaultPrefix,
+  getGuildPrefix,
+  listReactionRoleMessages,
+  listSavedPromptsForGuild,
+  listSavedPromptsForUser,
+  ReactionRoleMapping,
+  setGuildPrefix,
+} from "./storage";
 
 interface DashboardUser {
   id: string;
@@ -32,6 +51,23 @@ declare module "express-session" {
 const apiBaseUrl = "https://discord.com/api/v10";
 const sessionCookieName = "dimsum.sid";
 const sessionMaxAgeMs = 8 * 60 * 60 * 1000;
+const guildPermissionCacheMs = 30_000;
+
+class DiscordGuildListError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(message);
+  }
+}
+
+const guildPermissionCache = new Map<
+  string,
+  { expiresAt: number; guilds: DiscordGuild[] }
+>();
+const guildPermissionRequests = new Map<string, Promise<DiscordGuild[]>>();
 
 function saveSession(req: Request): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -45,13 +81,191 @@ function regenerateSession(req: Request): Promise<void> {
   });
 }
 
-function requireLogin(req: Request, res: Response, next: NextFunction): void {
+async function retryDelayMs(response: Response): Promise<number | null> {
+  const headerValue =
+    response.headers.get("retry-after") ??
+    response.headers.get("x-ratelimit-reset-after");
+  if (headerValue !== null) {
+    const seconds = Number(headerValue);
+    return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : null;
+  }
+
+  const payload = (await response.clone().json().catch(() => null)) as
+    | { retry_after?: unknown }
+    | null;
+  return typeof payload?.retry_after === "number" &&
+    Number.isFinite(payload.retry_after) &&
+    payload.retry_after >= 0
+    ? payload.retry_after * 1000
+    : null;
+}
+
+async function fetchGuildList(accessToken: string): Promise<DiscordGuild[]> {
+  let response = await fetch(`${apiBaseUrl}/users/@me/guilds`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (response.status === 429) {
+    const delay = await retryDelayMs(response);
+    if (delay === null || delay > 5000) {
+      throw new DiscordGuildListError(
+        "Discord is rate limiting server permissions. Retry in a few seconds.",
+        429,
+        delay === null ? undefined : Math.ceil(delay / 1000),
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay + 50));
+    response = await fetch(`${apiBaseUrl}/users/@me/guilds`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  }
+
+  if (response.status === 429) {
+    const delay = await retryDelayMs(response);
+    throw new DiscordGuildListError(
+      "Discord is still rate limiting server permissions. Retry in a few seconds.",
+      429,
+      delay === null ? undefined : Math.ceil(delay / 1000),
+    );
+  }
+  if (!response.ok) {
+    throw new DiscordGuildListError(
+      `Discord server permission request failed (${response.status}).`,
+      response.status,
+    );
+  }
+
+  const guilds = (await response.json()) as DiscordGuild[];
+  if (!Array.isArray(guilds)) {
+    throw new Error("Discord server permission response was invalid.");
+  }
+  return guilds;
+}
+
+async function getUserGuilds(
+  userId: string,
+  accessToken: string,
+): Promise<DiscordGuild[]> {
+  const now = Date.now();
+  for (const [cachedUserId, cached] of guildPermissionCache) {
+    if (cached.expiresAt <= now) guildPermissionCache.delete(cachedUserId);
+  }
+
+  const cached = guildPermissionCache.get(userId);
+  if (cached && cached.expiresAt > now) return cached.guilds;
+
+  const pending = guildPermissionRequests.get(userId);
+  if (pending) return pending;
+
+  const request = fetchGuildList(accessToken).then((guilds) => {
+    guildPermissionCache.set(userId, {
+      guilds,
+      expiresAt: Date.now() + guildPermissionCacheMs,
+    });
+    return guilds;
+  });
+  guildPermissionRequests.set(userId, request);
+  try {
+    return await request;
+  } finally {
+    if (guildPermissionRequests.get(userId) === request) {
+      guildPermissionRequests.delete(userId);
+    }
+  }
+}
+
+function respondToGuildListError(
+  req: Request,
+  res: ExpressResponse,
+  error: unknown,
+): boolean {
+  if (!(error instanceof DiscordGuildListError)) return false;
+  if (error.status === 401) {
+    req.session.destroy(() => undefined);
+    res.status(401).json({ error: "Discord session expired; sign in again." });
+    return true;
+  }
+  if (error.status === 429) {
+    res.status(503).json({
+      error: error.message,
+      retryAfterSeconds: error.retryAfterSeconds ?? null,
+    });
+    return true;
+  }
+  res.status(502).json({ error: error.message });
+  return true;
+}
+
+function requireLogin(
+  req: Request,
+  res: ExpressResponse,
+  next: NextFunction,
+): void {
   if (!req.session.accessToken || !req.session.user) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
 
   next();
+}
+
+async function userCanManageGuild(
+  req: Request,
+  res: ExpressResponse,
+  guildId: string,
+): Promise<boolean> {
+  let guilds: DiscordGuild[];
+  try {
+    guilds = await getUserGuilds(
+      req.session.user!.id,
+      req.session.accessToken!,
+    );
+  } catch (error) {
+    if (!respondToGuildListError(req, res, error)) throw error;
+    return false;
+  }
+  const guild = guilds.find((entry) => entry.id === guildId);
+  if (!guild) {
+    res.status(403).json({ error: "You do not have access to this server." });
+    return false;
+  }
+
+  const permissions = BigInt(guild.permissions);
+  if (
+    (permissions & PermissionFlagsBits.ManageGuild) === BigInt(0) &&
+    (permissions & PermissionFlagsBits.Administrator) === BigInt(0)
+  ) {
+    res.status(403).json({ error: "Manage Server permission is required." });
+    return false;
+  }
+  return true;
+}
+
+function parseMappings(value: unknown): ReactionRoleMapping[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 10) {
+    return null;
+  }
+  const mappings: ReactionRoleMapping[] = [];
+  for (const entry of value) {
+    if (
+      !entry ||
+      typeof entry !== "object" ||
+      !("emoji" in entry) ||
+      !("roleId" in entry) ||
+      typeof entry.emoji !== "string" ||
+      typeof entry.roleId !== "string"
+    ) {
+      return null;
+    }
+    mappings.push({ emoji: entry.emoji, roleId: entry.roleId });
+  }
+  return mappings;
+}
+
+function getRouteParam(req: Request, name: string): string {
+  const value = req.params[name];
+  if (typeof value === "string") return value;
+  return Array.isArray(value) ? (value[0] ?? "") : "";
 }
 
 export async function startDashboardServer(
@@ -103,6 +317,7 @@ export async function startDashboardServer(
       },
     })
   );
+  app.use(express.json({ limit: "16kb" }));
 
   app.get("/api/auth/login", async (req, res, next) => {
     try {
@@ -237,22 +452,10 @@ export async function startDashboardServer(
 
   app.get("/api/guilds", requireLogin, async (req, res, next) => {
     try {
-      const guildResponse = await fetch(`${apiBaseUrl}/users/@me/guilds`, {
-        headers: { Authorization: `Bearer ${req.session.accessToken}` },
-      });
-      if (guildResponse.status === 401) {
-        req.session.destroy(() => undefined);
-        res.status(401).json({ error: "Discord session expired; sign in again." });
-        return;
-      }
-      if (!guildResponse.ok) {
-        throw new Error(`Discord server list request failed (${guildResponse.status}).`);
-      }
-
-      const guilds = (await guildResponse.json()) as DiscordGuild[];
-      if (!Array.isArray(guilds)) {
-        throw new Error("Discord server list response was invalid.");
-      }
+      const guilds = await getUserGuilds(
+        req.session.user!.id,
+        req.session.accessToken!,
+      );
 
       res.json(
         guilds
@@ -274,9 +477,248 @@ export async function startDashboardServer(
           }))
       );
     } catch (error) {
+      if (respondToGuildListError(req, res, error)) return;
       next(error);
     }
   });
+
+  app.get("/api/me/saved-prompts", requireLogin, async (req, res, next) => {
+    try {
+      res.json(await listSavedPromptsForUser(req.session.user!.id));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get(
+    "/api/guilds/:guildId/saved-prompts",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        res.json(await listSavedPromptsForGuild(guildId));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/settings",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const customPrefix = await getGuildPrefix(guildId);
+        res.json({
+          prefix: customPrefix ?? getDefaultPrefix(),
+          isCustom: customPrefix !== null,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.put(
+    "/api/guilds/:guildId/settings/prefix",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const prefix =
+          req.body && typeof req.body.prefix === "string"
+            ? req.body.prefix
+            : null;
+        if (
+          prefix === null ||
+          prefix.length < 1 ||
+          prefix.length > 5 ||
+          /[\s@/<>]/u.test(prefix)
+        ) {
+          res.status(400).json({
+            error: "Prefix must be 1–5 characters and cannot contain spaces, mentions, or slashes.",
+          });
+          return;
+        }
+        await setGuildPrefix(guildId, prefix);
+        res.json({ prefix, isCustom: true });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.delete(
+    "/api/guilds/:guildId/settings/prefix",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        await setGuildPrefix(guildId, null);
+        res.json({ prefix: getDefaultPrefix(), isCustom: false });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/channels",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const botMember = guild.members.me ?? (await guild.members.fetchMe());
+        const channels = [...guild.channels.cache.values()].flatMap((channel) => {
+          if (
+            channel.type !== ChannelType.GuildText &&
+            channel.type !== ChannelType.GuildAnnouncement
+          ) {
+            return [];
+          }
+          const permissions = channel.permissionsFor(botMember);
+          if (
+            !permissions?.has([
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.AddReactions,
+            ])
+          ) {
+            return [];
+          }
+          return [{
+            id: channel.id,
+            name: channel.name,
+            category: channel.parent?.name ?? null,
+          }];
+        });
+        res.json(channels);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/roles",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const botMember = guild.members.me ?? (await guild.members.fetchMe());
+        if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+          res.json([]);
+          return;
+        }
+        res.json(
+          guild.roles.cache
+            .filter(
+              (role) =>
+                canBeReactionAssigned(role, botMember.roles.highest.position),
+            )
+            .sort((left, right) => right.position - left.position)
+            .map((role) => ({
+              id: role.id,
+              name: role.name,
+              color: role.hexColor,
+            })),
+        );
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/reaction-roles",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        res.json(await listReactionRoleMessages(guildId));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.post(
+    "/api/guilds/:guildId/reaction-roles",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const channelId =
+          req.body && typeof req.body.channelId === "string"
+            ? req.body.channelId
+            : "";
+        const content =
+          req.body && typeof req.body.content === "string"
+            ? req.body.content
+            : "";
+        const mappings = parseMappings(req.body?.mappings);
+        if (!channelId || !content || !mappings) {
+          res.status(400).json({
+            error: "Provide a channel, message text, and 1–10 emoji-role mappings.",
+          });
+          return;
+        }
+        const result = await publishReactionRoleMessage(
+          client,
+          guildId,
+          channelId,
+          content,
+          mappings,
+        );
+        res.status(201).json(result);
+      } catch (error) {
+        if (error instanceof ReactionRoleSetupError) {
+          res.status(400).json({ error: error.message });
+          return;
+        }
+        next(error);
+      }
+    },
+  );
+
+  app.delete(
+    "/api/guilds/:guildId/reaction-roles/:messageId",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        const messageId = getRouteParam(req, "messageId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        await deleteReactionRoleMessage(client, guildId, messageId);
+        res.status(204).end();
+      } catch (error) {
+        if (error instanceof ReactionRoleSetupError) {
+          res.status(404).json({ error: error.message });
+          return;
+        }
+        next(error);
+      }
+    },
+  );
 
   if (isProduction) {
     const dashboardDist = path.resolve(__dirname, "../../dashboard/dist");
@@ -298,7 +740,12 @@ export async function startDashboardServer(
   }
 
   app.use(
-    (error: unknown, _req: Request, res: Response, next: NextFunction) => {
+    (
+      error: unknown,
+      _req: Request,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => {
       if (res.headersSent) {
         next(error);
         return;

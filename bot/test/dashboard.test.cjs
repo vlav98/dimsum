@@ -1,10 +1,14 @@
 const assert = require("node:assert/strict");
+const { mkdtemp, rm } = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
 const { test } = require("node:test");
 
 require("ts-node/register");
 require("tsconfig-paths/register");
 
 const { startDashboardServer } = require("../src/dashboard");
+const { savePrompt } = require("../src/storage");
 
 const request = globalThis.fetch.bind(globalThis);
 
@@ -17,10 +21,12 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
     "DASHBOARD_PORT",
     "DASHBOARD_ORIGIN",
     "NODE_ENV",
+    "DIMSUM_DATA_DIR",
   ];
   const previousEnv = Object.fromEntries(
     envKeys.map((key) => [key, process.env[key]]),
   );
+  const dataDirectory = await mkdtemp(path.join(os.tmpdir(), "dimsum-api-"));
   Object.assign(process.env, {
     APP_ID: "test-app-id",
     DISCORD_CLIENT_SECRET: "test-client-secret",
@@ -29,9 +35,11 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
     DASHBOARD_PORT: "0",
     DASHBOARD_ORIGIN: "http://localhost:5173",
     NODE_ENV: "test",
+    DIMSUM_DATA_DIR: dataDirectory,
   });
 
   const originalFetch = globalThis.fetch;
+  let guildListRequests = 0;
   globalThis.fetch = async (input) => {
     const url = String(input);
     if (url.endsWith("/oauth2/token")) {
@@ -54,6 +62,14 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
       };
     }
     if (url.endsWith("/users/@me/guilds")) {
+      guildListRequests += 1;
+      if (guildListRequests === 1) {
+        return {
+          ok: false,
+          status: 429,
+          headers: { get: () => "0" },
+        };
+      }
       return {
         ok: true,
         status: 200,
@@ -90,6 +106,18 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
 
   let server;
   try {
+    await savePrompt({
+      id: "user-1:message-1",
+      sourceMessageId: "message-1",
+      userId: "user-1",
+      username: "test-user",
+      displayName: "Test User",
+      guildId: "guild-1",
+      guildName: "Managed server",
+      kind: "random",
+      content: "A saved prompt",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
     server = await startDashboardServer(client);
     const address = server.address();
     assert.ok(address && typeof address === "object");
@@ -131,9 +159,13 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
       avatar: null,
     });
 
-    const guildResponse = await request(`${baseUrl}/api/guilds`, {
-      headers: { Cookie: authenticatedCookie },
-    });
+    const cookieOptions = { headers: { Cookie: authenticatedCookie } };
+    const [guildResponse, adminPromptsResponse, settingsResponse] =
+      await Promise.all([
+        request(`${baseUrl}/api/guilds`, cookieOptions),
+        request(`${baseUrl}/api/guilds/guild-1/saved-prompts`, cookieOptions),
+        request(`${baseUrl}/api/guilds/guild-1/settings`, cookieOptions),
+      ]);
     assert.deepEqual(await guildResponse.json(), [
       {
         id: "guild-1",
@@ -142,6 +174,40 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
         botPresent: true,
       },
     ]);
+    assert.equal((await adminPromptsResponse.json()).length, 1);
+    assert.deepEqual(await settingsResponse.json(), {
+      prefix: "!",
+      isCustom: false,
+    });
+    assert.equal(guildListRequests, 2);
+
+    const savePromptsResponse = await request(
+      `${baseUrl}/api/me/saved-prompts`,
+      { headers: { Cookie: authenticatedCookie } },
+    );
+    assert.equal((await savePromptsResponse.json()).length, 1);
+
+    const forbiddenPromptsResponse = await request(
+      `${baseUrl}/api/guilds/guild-2/saved-prompts`,
+      { headers: { Cookie: authenticatedCookie } },
+    );
+    assert.equal(forbiddenPromptsResponse.status, 403);
+
+    const prefixResponse = await request(
+      `${baseUrl}/api/guilds/guild-1/settings/prefix`,
+      {
+        method: "PUT",
+        headers: {
+          Cookie: authenticatedCookie,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prefix: "??" }),
+      },
+    );
+    assert.deepEqual(await prefixResponse.json(), {
+      prefix: "??",
+      isCustom: true,
+    });
   } finally {
     globalThis.fetch = originalFetch;
     if (server) {
@@ -153,5 +219,6 @@ test("dashboard OAuth protects API data and returns manageable servers", async (
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
+    await rm(dataDirectory, { recursive: true, force: true });
   }
 });

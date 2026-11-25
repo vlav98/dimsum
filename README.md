@@ -72,14 +72,31 @@ Open <http://localhost:5173> and choose **Continue with Discord**. The Vite
 development server forwards `/api` requests to the bot API on port 3001.
 `DASHBOARD_PORT` and `DASHBOARD_ORIGIN` can override those local defaults.
 
-The dashboard is read-only. It lists servers where your account has Manage
-Server or Administrator permissions, shows whether DimSum is in each server,
-and displays bot connection status and slash commands. The simple in-memory
-session store is intended for local/single-process use; use a persistent session
-store and HTTPS for a multi-instance production deployment. In production, set
-`DISCORD_REDIRECT_URI` and `DASHBOARD_ORIGIN` to your public HTTPS URLs and
-build the frontend with `npm run build --workspace=dashboard`; the bot API
-serves `dashboard/dist` when `NODE_ENV=production`.
+The dashboard lists servers where your account has Manage Server or
+Administrator permissions. From a server's panel, managers can set that
+server's message prefix and create/delete reaction-role messages. The bot needs
+Manage Roles, access to the selected text channel, and a role hierarchy above
+the roles being offered. The `/reactionroles` slash command provides the same
+message-creation feature inside Discord. The bot adds a role when a member
+reacts and removes it when they remove their reaction.
+
+Generated prompts include a **Save prompt** button. Users can view their own
+saved prompts in the dashboard; managers can also view prompts saved from the
+server they manage. OC generator results can also be saved. In Discord, use
+`/savedprompts` to browse your saves, with optional `kind` and `page` filters;
+the private browser shows one prompt per page, with type-filter buttons,
+**Previous**/**Next** navigation, and **Delete** to remove your current save.
+Deleting a save leaves the original generated message intact.
+The bot privately confirms visibility when a
+prompt is saved. Prefixes, reaction-role mappings, and saved prompts are stored
+in the ignored `bot/data/dashboard-data.json` file.
+
+The simple in-memory session store is intended for local/single-process use;
+use a persistent session store and HTTPS for a multi-instance production
+deployment. In production, set `DISCORD_REDIRECT_URI` and `DASHBOARD_ORIGIN` to
+your public HTTPS URLs and build the frontend with
+`npm run build --workspace=dashboard`; the bot API serves `dashboard/dist`
+when `NODE_ENV=production`.
 
 ## Other checks
 
