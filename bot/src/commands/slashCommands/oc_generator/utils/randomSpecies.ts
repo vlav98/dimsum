@@ -3,30 +3,17 @@ import { capitalizeFirstLetter, randomizeEnum } from "../../../../utils";
 
 export function randomizeSpecies(): string {
   const species = randomizeEnum(Species);
-  const isHalf = randomizeEnum(Species) === Species.HALF;
-  console.log("isHalf", isHalf, "species", species);
+  if (species === Species.HALF) {
+    const firstHalf = randomizeEnum(HalfSpecies);
+    let secondHalf = randomizeEnum(HalfSpecies);
+    while (secondHalf === firstHalf) {
+      secondHalf = randomizeEnum(HalfSpecies);
+    }
 
-  if (isHalf) {
-    const halfSpecies: HalfSpecies[] = [];
-    halfSpecies.push(randomizeEnum(HalfSpecies));
-    const secondHalfSpecies = randomizeEnum(HalfSpecies);
-    halfSpecies.push(
-      secondHalfSpecies === halfSpecies[1]
-        ? randomizeEnum(HalfSpecies)
-        : randomizeEnum(HalfSpecies)
-    );
-    console.log("halfSpecies", halfSpecies);
-    console.log("secondHalfSpecies", secondHalfSpecies);
-
-    return halfSpecies
-      .map((half) => {
-        return capitalizeFirstLetter(half);
-      })
+    return [firstHalf, secondHalf]
+      .map(capitalizeFirstLetter)
       .join(" & ");
   }
-  // const species = randomizeEnum(Species).toString();
 
   return capitalizeFirstLetter(species);
 }
-
-console.log(randomizeSpecies());

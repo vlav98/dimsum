@@ -7,5 +7,3 @@ export function randomizeHairLength(): HairLength {
 
   return randomHairLength;
 }
-
-console.log("What is their hair length ?", randomizeHairLength());

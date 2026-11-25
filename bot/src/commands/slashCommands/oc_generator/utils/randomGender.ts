@@ -4,5 +4,3 @@ import { randomizeEnum } from "../../../../utils";
 export function randomizeGender(): Gender {
   return randomizeEnum(Gender);
 }
-
-console.log("What are their gender ?", randomizeGender());

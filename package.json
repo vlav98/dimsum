@@ -10,7 +10,7 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspace=bot",
     "type": "npm run type --workspaces --if-present",
-    "test": "npm run test --workspace=dashboard"
+    "test": "npm run test --workspaces --if-present"
   },
   "workspaces": ["bot", "dashboard"],
   "devDependencies": {

@@ -19,7 +19,3 @@ export function randomizeHairColor(): HairColour[] {
 
   return randomHairColor;
 }
-
-const numberOfHairColours = randomizeNumberOfHairColours();
-console.log("How many hair colours do they have ?", numberOfHairColours);
-console.log("What are their hair colours ?", randomizeHairColor());
