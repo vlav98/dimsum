@@ -1,0 +1,18 @@
+services:
+  dimsum:
+    build: .
+    env_file:
+      - ./bot/.env
+    environment:
+      NODE_ENV: production
+      DIMSUM_DATA_DIR: /data
+      DASHBOARD_PORT: "3001"
+    ports:
+      - "3001:3001"
+    volumes:
+      - dimsum-data:/data
+    init: true
+    restart: unless-stopped
+
+volumes:
+  dimsum-data:

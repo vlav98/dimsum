@@ -130,6 +130,35 @@ your public HTTPS URLs and build the frontend with
 `npm run build --workspace=dashboard`; the bot API serves `dashboard/dist`
 when `NODE_ENV=production`.
 
+## Run with Docker
+
+Install Docker with the Compose plugin, then configure the bot environment:
+
+```bash
+cp bot/.env.example bot/.env
+```
+
+Set `DISCORD_TOKEN` and `GUILD_ID`. To enable the dashboard, also set the
+Discord OAuth values (`APP_ID`, `DISCORD_CLIENT_SECRET`,
+`DISCORD_REDIRECT_URI`, and `SESSION_SECRET`). For local use, the callback URL
+can be `http://localhost:3001/api/auth/callback`. For a public deployment, set
+`DISCORD_REDIRECT_URI` to your public HTTPS callback URL and
+`DASHBOARD_ORIGIN` to your public HTTPS dashboard URL, and register that
+callback URL in the Discord Developer Portal.
+
+Build and start the bot and production dashboard together:
+
+```bash
+docker compose up --build -d
+docker compose logs -f
+```
+
+The dashboard is available at <http://localhost:3001> when its OAuth settings
+are configured. Compose stores dashboard data in the `dimsum-data` volume, so
+it survives container rebuilds and restarts. Stop the service with
+`docker compose down`; the data volume is preserved. Keep `bot/.env` private
+and do not add it to the image.
+
 ## Other checks
 
 ```bash
