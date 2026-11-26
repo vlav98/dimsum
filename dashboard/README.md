@@ -97,6 +97,11 @@ Keep stateful page logic in that page's `hooks/` folder and reusable UI in
 `components/common/`. Shared components include feedback, loading/retry states,
 tabs, setting forms, command lists, and the channel combobox.
 
+Dashboard palette and semantic color tokens live in `src/styles/theme.css`.
+The light theme uses peach and mint surfaces, pink and teal primary accents,
+and pastel highlights with dark text. Change the tokens there rather than
+adding hardcoded colors to individual component styles.
+
 Every dashboard `.tsx` file, including tests, is limited to **100 lines**.
 Extract coherent subcomponents or hooks rather than compressing formatting.
 `npm run lint` from the repository root enforces the limit alongside bot

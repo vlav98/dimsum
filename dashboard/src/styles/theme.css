@@ -1,0 +1,28 @@
+:root {
+  color-scheme: light;
+  --pink: #ffb6b9;
+  --peach: #fae3d9;
+  --mint: #bbded6;
+  --teal: #61c0bf;
+  --lemon-chiffon: #fbf8cc;
+  --powder-petal: #fde4cf;
+  --cotton-rose: #ffcfd2;
+  --pink-orchid: #f1c0e8;
+  --mauve: #cfbaf0;
+  --baby-blue-ice: #a3c4f3;
+  --frosted-blue: #90dbf4;
+  --electric-aqua: #8eecf5;
+  --aquamarine: #98f5e1;
+  --celadon: #b9fbc0;
+
+  --background: var(--peach);
+  --surface: #fffaf6;
+  --text: #293e3d;
+  --muted: #354e4b;
+  --accent: #1d5351;
+  --border: #abc4bb;
+  --control-border: #67827c;
+  --danger: #8b3545;
+  --success: #2b604a;
+  --shadow: #29444124;
+}
