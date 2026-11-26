@@ -6,6 +6,7 @@ import { onReady } from "./events/onReady";
 import { onMessageCommand } from "./events/onMessageCommand";
 import { startDashboardServer } from "./dashboard";
 import { applyReactionRole } from "./reactionRoles";
+import { startDailyPosts } from "./dailyPosts";
 
 (async () => {
   if (!process.env.DISCORD_TOKEN) {
@@ -55,6 +56,7 @@ import { applyReactionRole } from "./reactionRoles";
   });
 
   await client.login(process.env.DISCORD_TOKEN);
+  startDailyPosts(client);
   await startDashboardServer(client);
 })();
 

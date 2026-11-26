@@ -96,8 +96,22 @@ function mockDashboard(hasManagedServers = true) {
       }
       return jsonResponse(null, 204);
     }
-    if (url === '/api/guilds/guild-1/settings/writing' && method === 'PUT') {
+    if (
+      [
+        '/api/guilds/guild-1/settings/writing',
+        '/api/guilds/guild-1/settings/nickname',
+        '/api/guilds/guild-1/settings/daily',
+      ].includes(url) &&
+      method === 'PUT'
+    ) {
       return jsonResponse(JSON.parse(String(init?.body)));
+    }
+    if (url === '/api/guilds/guild-1/settings/prefix' && method !== 'GET') {
+      return jsonResponse(
+        method === 'DELETE'
+          ? { prefix: '!', isCustom: false }
+          : { ...JSON.parse(String(init?.body)), isCustom: true },
+      );
     }
     const responses: Record<string, unknown> = {
       '/api/me': { id: 'user-1', displayName: 'Test User', avatar: null },
@@ -141,10 +155,31 @@ function mockDashboard(hasManagedServers = true) {
           description: 'Generate a story starter',
           category: 'Anti-writer block',
         },
+        {
+          name: 'daily',
+          description: 'Daily challenge',
+          category: 'Productivity & sharing',
+        },
+        {
+          name: 'group-prompt',
+          description: 'Post a group prompt',
+          category: 'Productivity & sharing',
+        },
       ],
       '/api/me/saved-prompts': mine,
       '/api/guilds/guild-1/saved-prompts': server,
       '/api/guilds/guild-1/settings': { prefix: '!', isCustom: false },
+      '/api/guilds/guild-1/settings/nickname': {
+        nickname: null,
+        username: 'DimSum',
+      },
+      '/api/guilds/guild-1/settings/daily': {
+        enabled: false,
+        channelId: null,
+        time: '09:00',
+        kind: 'prompt',
+        lastPostedDate: null,
+      },
       '/api/guilds/guild-1/settings/writing': {
         channelId: null,
         channels: [{ id: 'channel-1', name: 'general', category: null }],
@@ -259,9 +294,87 @@ describe('dashboard', () => {
     expect(screen.queryByText('Test Server')).not.toBeInTheDocument();
     expect(screen.queryByText('Member Server')).not.toBeInTheDocument();
   });
-  test('settings search channels, pick emojis, and edit, publish, and delete configured messages', async () => {
+  test('bot settings edit nickname and prefix separately from command settings', async () => {
     mockDashboard();
     window.location.hash = '#/servers/guild-1/settings';
+    const user = userEvent.setup();
+    render(<App />);
+    const nickname = await screen.findByLabelText('Bot nickname');
+    expect(
+      screen.queryByRole('heading', { name: 'Configured messages' }),
+    ).not.toBeInTheDocument();
+    await user.type(nickname, 'Dumpling');
+    await user.click(screen.getByRole('button', { name: 'Save nickname' }));
+    await screen.findByText('Nickname saved.');
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/guilds/guild-1/settings/nickname',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ nickname: 'Dumpling' }),
+      }),
+    );
+    const prefix = screen.getByLabelText('Prefix (1–5 characters)');
+    await user.clear(prefix);
+    await user.type(prefix, '??');
+    await user.click(screen.getByRole('button', { name: 'Save prefix' }));
+    await screen.findByText('Prefix saved.');
+    expect(prefix).toHaveValue('??');
+    await user.click(screen.getByRole('button', { name: 'Reset prefix' }));
+    await waitFor(() => expect(prefix).toHaveValue('!'));
+  });
+
+  test('command themes expose and save the daily schedule', async () => {
+    mockDashboard();
+    window.location.hash = '#/servers/guild-1/commands';
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(
+      await screen.findByRole('tab', { name: 'Anti-writer block' }),
+    );
+    expect(
+      screen.queryByLabelText('Daily posting channel'),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('tab', { name: 'Productivity & sharing' }),
+    );
+    await screen.findByLabelText('Enable daily posts');
+    expect(
+      screen.getByRole('tab', { name: 'Productivity & sharing' }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await user.click(screen.getByLabelText('Enable daily posts'));
+    await user.selectOptions(
+      screen.getByLabelText('Daily posting channel'),
+      'channel-1',
+    );
+    await user.selectOptions(
+      screen.getByLabelText('Daily content'),
+      'challenge',
+    );
+    await user.clear(screen.getByLabelText('Posting time (UTC)'));
+    await user.type(screen.getByLabelText('Posting time (UTC)'), '14:30');
+    await user.click(
+      screen.getByRole('button', { name: 'Save daily schedule' }),
+    );
+    await screen.findByText('Daily schedule saved.');
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/guilds/guild-1/settings/daily',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({
+          enabled: true,
+          channelId: 'channel-1',
+          time: '14:30',
+          kind: 'challenge',
+          lastPostedDate: null,
+        }),
+      }),
+    );
+    expect(screen.queryByLabelText('Bot nickname')).not.toBeInTheDocument();
+  });
+
+  test('settings search channels, pick emojis, and edit, publish, and delete configured messages', async () => {
+    mockDashboard();
+    window.location.hash = '#/servers/guild-1/commands';
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole('heading', { name: 'Configured messages' });
@@ -352,6 +465,10 @@ describe('dashboard', () => {
     await user.click(
       await screen.findByRole('link', { name: 'Open Test Server' }),
     );
+    await user.click(await screen.findByRole('link', { name: 'Commands' }));
+    await user.click(
+      await screen.findByRole('tab', { name: 'Productivity & sharing' }),
+    );
     const select = await screen.findByLabelText('Dedicated writing channel');
     await user.selectOptions(select, 'channel-1');
     await user.click(
@@ -434,7 +551,7 @@ describe('dashboard', () => {
       await screen.findByRole('tab', { name: 'Server prompts' }),
     ).toBeDisabled();
     expect(
-      screen.queryByRole('link', { name: 'Server settings' }),
+      screen.queryByRole('link', { name: 'Bot settings' }),
     ).not.toBeInTheDocument();
     await waitFor(() =>
       expect(

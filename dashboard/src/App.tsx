@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { errorMessage, getJson, Guild, mutate } from './api';
 import SavedPrompts from './SavedPrompts';
 import ServerSettings from './ServerSettings';
+import BotSettings from './BotSettings';
 import './App.css';
 
 type User = { id: string; displayName: string; avatar: string | null };
@@ -196,7 +197,9 @@ function App() {
       </main>
     );
 
-  const serverRoute = route.match(/^#\/servers\/([^/]+)\/(settings|saved)$/);
+  const serverRoute = route.match(
+    /^#\/servers\/([^/]+)\/(settings|commands|saved)$/,
+  );
   const guild = dashboard?.guilds.find(
     (entry) => entry.id === serverRoute?.[1],
   );
@@ -272,14 +275,24 @@ function App() {
               <div className="sidebar-server">{guild.name}</div>
               <nav className="sidebar-nav" aria-label="Server navigation">
                 {guild.canManage && (
-                  <a
-                    href={`#/servers/${guild.id}/settings`}
-                    aria-current={
-                      serverRoute[2] === 'settings' ? 'page' : undefined
-                    }
-                  >
-                    Server settings
-                  </a>
+                  <>
+                    <a
+                      href={`#/servers/${guild.id}/settings`}
+                      aria-current={
+                        serverRoute[2] === 'settings' ? 'page' : undefined
+                      }
+                    >
+                      Bot settings
+                    </a>
+                    <a
+                      href={`#/servers/${guild.id}/commands`}
+                      aria-current={
+                        serverRoute[2] === 'commands' ? 'page' : undefined
+                      }
+                    >
+                      Commands
+                    </a>
+                  </>
                 )}
                 <a
                   href={`#/servers/${guild.id}/saved`}
@@ -417,7 +430,15 @@ function App() {
               {serverRoute[2] === 'saved' ? (
                 <SavedPrompts key={guild.id} guild={guild} />
               ) : guild.canManage ? (
-                <ServerSettings key={guild.id} guild={guild} />
+                serverRoute[2] === 'commands' ? (
+                  <ServerSettings
+                    key={`${guild.id}-commands`}
+                    guild={guild}
+                    commands={dashboard.commands}
+                  />
+                ) : (
+                  <BotSettings key={`${guild.id}-settings`} guild={guild} />
+                )
               ) : (
                 <p role="alert">
                   Manage Server permission is required to change these settings.

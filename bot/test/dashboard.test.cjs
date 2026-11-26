@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { mkdtemp, rm } = require("node:fs/promises");
+const { mkdtemp, rm, stat } = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { test } = require("node:test");
@@ -8,6 +8,7 @@ require("ts-node/register");
 require("tsconfig-paths/register");
 
 const { startDashboardServer } = require("../src/dashboard");
+const { DashboardSessionStore } = require("../src/dashboardSessionStore");
 const {
   savePrompt,
   saveReactionRoleMessage,
@@ -57,7 +58,11 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
       return {
         ok: true,
         status: 200,
-        json: async () => ({ access_token: "test-access-token" }),
+        json: async () => ({
+          access_token: "test-access-token",
+          refresh_token: "test-refresh-token",
+          expires_in: 3600,
+        }),
       };
     }
     if (url.endsWith("/users/@me")) {
@@ -112,7 +117,14 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
   const roleId = "12345678901234567";
   const emojiId = "22345678901234567";
   const botMember = {
-    permissions: new PermissionsBitField(PermissionFlagsBits.ManageRoles),
+    permissions: new PermissionsBitField([
+      PermissionFlagsBits.ManageRoles,
+      PermissionFlagsBits.ChangeNickname,
+    ]),
+    nickname: null,
+    setNickname: async (nickname) => {
+      botMember.nickname = nickname;
+    },
     roles: { highest: { position: 5 } },
   };
   const reactions = [];
@@ -222,6 +234,7 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
       content: "A saved prompt",
       createdAt: "2026-01-01T00:00:00.000Z",
     });
+
     for (const [id, guildId] of [
       ["other-user:server-save", "guild-1"],
       ["other-user:elsewhere", "guild-3"],
@@ -363,6 +376,87 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
+    const nicknameRoute = "/api/guilds/guild-1/settings/nickname";
+    assert.equal(
+      (
+        await change("/api/guilds/guild-2/settings/nickname", "PUT", {
+          nickname: "Not allowed",
+        })
+      ).status,
+      403,
+    );
+    assert.equal(
+      (await change(nicknameRoute, "PUT", { nickname: "x".repeat(33) })).status,
+      400,
+    );
+    assert.equal(
+      (await change(nicknameRoute, "PUT", { nickname: "Dumpling" })).status,
+      200,
+    );
+    assert.equal(botMember.nickname, "Dumpling");
+    const nicknameReload = await request(
+      `${baseUrl}${nicknameRoute}`,
+      cookieOptions,
+    );
+    assert.equal((await nicknameReload.json()).nickname, "Dumpling");
+    assert.equal(
+      (await change(nicknameRoute, "PUT", { nickname: null })).status,
+      200,
+    );
+    assert.equal(botMember.nickname, null);
+    botMember.permissions.remove(PermissionFlagsBits.ChangeNickname);
+    assert.equal(
+      (await change(nicknameRoute, "PUT", { nickname: "Dumpling" })).status,
+      400,
+    );
+    botMember.permissions.add(PermissionFlagsBits.ChangeNickname);
+
+    const dailyRoute = "/api/guilds/guild-1/settings/daily";
+    const schedule = {
+      enabled: true,
+      channelId: "channel-1",
+      time: "14:30",
+      kind: "prompt",
+    };
+    assert.equal(
+      (await change("/api/guilds/guild-2/settings/daily", "PUT", schedule))
+        .status,
+      403,
+    );
+    assert.equal(
+      (await change(dailyRoute, "PUT", { ...schedule, time: "25:00" })).status,
+      400,
+    );
+    assert.equal(
+      (await change(dailyRoute, "PUT", { ...schedule, channelId: null }))
+        .status,
+      400,
+    );
+    assert.equal(
+      (
+        await change(dailyRoute, "PUT", {
+          ...schedule,
+          channelId: "other-server-channel",
+        })
+      ).status,
+      400,
+    );
+    assert.equal((await change(dailyRoute, "PUT", schedule)).status, 200);
+    assert.deepEqual(
+      await (await request(`${baseUrl}${dailyRoute}`, cookieOptions)).json(),
+      { ...schedule, lastPostedDate: null },
+    );
+    assert.equal(
+      (
+        await change(dailyRoute, "PUT", {
+          ...schedule,
+          enabled: false,
+          channelId: "deleted-channel",
+        })
+      ).status,
+      200,
+    );
+
     const commandResponse = await request(
       `${baseUrl}/api/commands`,
       cookieOptions,
@@ -595,5 +689,206 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
       else process.env[key] = value;
     }
     await rm(dataDirectory, { recursive: true, force: true });
+  }
+});
+
+test("dashboard sessions survive restart, refresh tokens, and end on logout", async () => {
+  const keys = [
+    "APP_ID",
+    "DISCORD_CLIENT_SECRET",
+    "DISCORD_REDIRECT_URI",
+    "SESSION_SECRET",
+    "DASHBOARD_PORT",
+    "DASHBOARD_ORIGIN",
+    "NODE_ENV",
+    "DIMSUM_DATA_DIR",
+  ];
+  const previous = Object.fromEntries(
+    keys.map((key) => [key, process.env[key]]),
+  );
+  const directory = await mkdtemp(path.join(os.tmpdir(), "dimsum-session-"));
+  Object.assign(process.env, {
+    APP_ID: "test-app-id",
+    DISCORD_CLIENT_SECRET: "test-client-secret",
+    DISCORD_REDIRECT_URI: "http://localhost:3001/api/auth/callback",
+    SESSION_SECRET: "test-session-secret-that-is-long-enough",
+    DASHBOARD_PORT: "0",
+    DASHBOARD_ORIGIN: "http://localhost:3001",
+    NODE_ENV: "production",
+    DIMSUM_DATA_DIR: directory,
+  });
+
+  const originalFetch = globalThis.fetch;
+  let refreshes = 0;
+  let rejectRefresh = false;
+  globalThis.fetch = async (input, options) => {
+    const url = String(input);
+    if (url.endsWith("/oauth2/token")) {
+      const refresh = options.body.get("grant_type") === "refresh_token";
+      if (refresh) {
+        assert.equal(options.body.get("refresh_token"), "refresh-initial");
+        refreshes++;
+        if (rejectRefresh) return { ok: false, status: 400 };
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          access_token: refresh ? "access-refreshed" : "access-initial",
+          refresh_token: refresh ? "refresh-rotated" : "refresh-initial",
+          expires_in: refresh ? 3600 : 1,
+        }),
+      };
+    }
+    if (url.endsWith("/users/@me")) {
+      return {
+        ok: true,
+        json: async () => ({
+          id: "session-user",
+          username: "test",
+          global_name: null,
+          avatar: null,
+        }),
+      };
+    }
+    throw new Error(`Unexpected Discord API request: ${url}`);
+  };
+  const client = {
+    isReady: () => true,
+    user: { username: "DimSum" },
+    guilds: { cache: new Collection() },
+    uptime: 0,
+  };
+  let server;
+  const close = async () => {
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+    server = undefined;
+  };
+  const baseUrl = () => `http://127.0.0.1:${server.address().port}`;
+  try {
+    server = await startDashboardServer(client);
+    assert.equal(
+      (await stat(path.join(directory, "sessions"))).mode & 0o777,
+      0o700,
+    );
+    const login = await request(`${baseUrl()}/api/auth/login`, {
+      redirect: "manual",
+    });
+    const loginCookie = login.headers.get("set-cookie");
+    assert.ok(loginCookie);
+    assert.doesNotMatch(loginCookie, /;\s*secure/i);
+    const expires = loginCookie.match(/expires=([^;]+)/i);
+    assert.ok(expires);
+    assert.ok(Date.parse(expires[1]) - Date.now() > 29 * 24 * 60 * 60 * 1000);
+    const state = new URL(login.headers.get("location")).searchParams.get(
+      "state",
+    );
+    const callback = await request(
+      `${baseUrl()}/api/auth/callback?code=code&state=${state}`,
+      {
+        redirect: "manual",
+        headers: { Cookie: loginCookie.split(";")[0] },
+      },
+    );
+    assert.equal(callback.status, 302);
+    const cookie = callback.headers.get("set-cookie").split(";")[0];
+    await close();
+    server = await startDashboardServer(client);
+
+    const responses = await Promise.all(
+      ["/api/me", "/api/status", "/api/commands"].map((route) =>
+        request(`${baseUrl()}${route}`, { headers: { Cookie: cookie } }),
+      ),
+    );
+    assert.deepEqual(
+      responses.map((response) => response.status),
+      [200, 200, 200],
+    );
+    assert.equal(refreshes, 1);
+    await close();
+    server = await startDashboardServer(client);
+    const me = await request(`${baseUrl()}/api/me`, {
+      headers: { Cookie: cookie },
+    });
+    assert.equal(me.status, 200);
+    assert.equal(refreshes, 1);
+    assert.equal(
+      (
+        await request(`${baseUrl()}/api/auth/logout`, {
+          method: "POST",
+          headers: { Cookie: cookie },
+        })
+      ).status,
+      204,
+    );
+    assert.equal(
+      (
+        await request(`${baseUrl()}/api/me`, {
+          headers: { Cookie: cookie },
+        })
+      ).status,
+      401,
+    );
+    rejectRefresh = true;
+    const newLogin = await request(`${baseUrl()}/api/auth/login`, {
+      redirect: "manual",
+    });
+    const newState = new URL(newLogin.headers.get("location")).searchParams.get(
+      "state",
+    );
+    const newCallback = await request(
+      `${baseUrl()}/api/auth/callback?code=code&state=${newState}`,
+      {
+        redirect: "manual",
+        headers: { Cookie: newLogin.headers.get("set-cookie").split(";")[0] },
+      },
+    );
+    const rejectedCookie = newCallback.headers.get("set-cookie").split(";")[0];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await request(`${baseUrl()}/api/me`, {
+        headers: { Cookie: rejectedCookie },
+      });
+      assert.equal(response.status, 401);
+    }
+    await close();
+    process.env.DASHBOARD_ORIGIN = "https://dashboard.example.com";
+    server = await startDashboardServer(client);
+    const secureLogin = await request(`${baseUrl()}/api/auth/login`, {
+      redirect: "manual",
+      headers: { "X-Forwarded-Proto": "https" },
+    });
+    assert.match(secureLogin.headers.get("set-cookie"), /;\s*secure/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (server) await close();
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("a stale request cannot restore a destroyed dashboard session", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "dimsum-store-"));
+  try {
+    const store = new DashboardSessionStore(directory, 60);
+    const set = () =>
+      new Promise((resolve, reject) =>
+        store.set("session-id", { cookie: {} }, (error) =>
+          error ? reject(error) : resolve(),
+        ),
+      );
+    await set();
+    await new Promise((resolve, reject) =>
+      store.destroy("session-id", (error) =>
+        error ? reject(error) : resolve(),
+      ),
+    );
+    await assert.rejects(set(), /destroyed dashboard session/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });

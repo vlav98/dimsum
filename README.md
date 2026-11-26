@@ -52,11 +52,12 @@ Use `/help` to browse the themed command catalog. Existing commands such as
 | Personal creations | `/adopt`, `/savedprompts` |
 
 Generators use curated local lists, with no external AI or AO3 connection.
-`/daily` is shared for the UTC day; it does not schedule an automatic post.
+`/daily` is shared for the UTC day. Managers can separately enable automatic
+daily posts in the dashboard.
 `/adopt` creates a first-claim-wins OC offer and saves the claimed sheet in its
 owner's library. `/group-prompt` needs a dedicated channel set by a manager
-with `/writing-channel channel:#writing` or **Server settings → Community
-writing channel** in the dashboard. The bot needs View Channel, Send Messages,
+with `/writing-channel channel:#writing` or **Commands → Productivity & sharing
+→ Community writing channel** in the dashboard. The bot needs View Channel, Send Messages,
 and Embed Links there. See [the command reference](bot/README.md#writing-tools)
 for options and examples.
 
@@ -106,8 +107,15 @@ The dashboard's sidebar separates **Overview** (bot status and commands) from
 **My servers**, which lists only servers where you have Manage Server or
 Administrator permission. The entire server card opens its settings when
 DimSum is present; cards without the bot are disabled. Each shared server has
-separate settings and saved-prompts pages.
-Managers can set the server prefix and create, edit, or delete
+separate **Bot settings**, **Commands**, and saved-prompts pages.
+**Bot settings** controls the server prefix and the bot's server nickname
+(requires Change Nickname permission). **Commands** has a tab per command theme.
+Under **Productivity & sharing**, managers can set the community writing channel
+and enable a daily story prompt or writing challenge with a channel and UTC
+posting time. Schedules survive restarts; if the bot returns after today's
+posting time, it sends today's missed post, not a backlog of older days.
+Changing the schedule does not send a second post on a day already posted.
+Under **Administration & utilities**, managers can create, edit, or delete
 reaction-role messages. The channel selector supports search; the emoji picker
 offers default and server emojis, and also accepts Unicode or `:emoji_name:`
 codes. Editing a message keeps it in its original channel. The bot needs
@@ -132,9 +140,11 @@ The bot privately confirms visibility when a
 prompt is saved. Prefixes, reaction-role mappings, and saved prompts are stored
 in the ignored `bot/data/dashboard-data.json` file.
 
-The simple in-memory session store is intended for local/single-process use;
-use a persistent session store and HTTPS for a multi-instance production
-deployment. In production, set `DISCORD_REDIRECT_URI` and `DASHBOARD_ORIGIN` to
+Dashboard sessions persist in `bot/data/sessions` for 30 days of inactivity.
+Signing out or revoking Discord access ends a session. The session directory
+contains Discord tokens: keep it private, and keep `SESSION_SECRET` stable
+across restarts. The file store supports one bot process, not multiple instances.
+In production, use HTTPS and set `DISCORD_REDIRECT_URI` and `DASHBOARD_ORIGIN` to
 your public HTTPS URLs and build the frontend with
 `npm run build --workspace=dashboard`; the bot API serves `dashboard/dist`
 when `NODE_ENV=production`.
@@ -149,10 +159,13 @@ cp bot/.env.example bot/.env
 
 Set `DISCORD_TOKEN` and `GUILD_ID`. To enable the dashboard, also set the
 Discord OAuth values (`APP_ID`, `DISCORD_CLIENT_SECRET`,
-`DISCORD_REDIRECT_URI`, and `SESSION_SECRET`). For local use, the callback URL
-can be `http://localhost:3001/api/auth/callback`. For a public deployment, set
-`DISCORD_REDIRECT_URI` to your public HTTPS callback URL and
-`DASHBOARD_ORIGIN` to your public HTTPS dashboard URL, and register that
+`DISCORD_REDIRECT_URI`, and `SESSION_SECRET`). Register
+`http://localhost:3001/api/auth/callback` in the Discord Developer Portal for
+local use and set `DISCORD_REDIRECT_URI` to that value. Leave
+`DASHBOARD_ORIGIN` unset (or set it to `http://localhost:3001`); the
+development frontend's `http://localhost:5173` is not used by Docker. For a
+public deployment, set `DISCORD_REDIRECT_URI` to your public HTTPS callback URL
+and `DASHBOARD_ORIGIN` to your public HTTPS dashboard URL, and register that
 callback URL in the Discord Developer Portal.
 
 Build and start the bot and production dashboard together:
@@ -163,8 +176,9 @@ docker compose logs -f
 ```
 
 The dashboard is available at <http://localhost:3001> when its OAuth settings
-are configured. Compose stores dashboard data in the `dimsum-data` volume, so
-it survives container rebuilds and restarts. Stop the service with
+are configured. Compose stores dashboard data and login sessions in the
+`dimsum-data` volume, so they survive container rebuilds and restarts. Protect
+the volume and do not share its session files. Stop the service with
 `docker compose down`; the data volume is preserved. Keep `bot/.env` private
 and do not add it to the image.
 

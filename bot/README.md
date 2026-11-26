@@ -23,6 +23,9 @@ The dashboard stores per-server prefixes, reaction-role message mappings, and
 saved prompts in `bot/data/dashboard-data.json`. Keep this file private and
 back it up if you need to preserve those settings. Manage Server permission is
 required to change a server's dashboard settings.
+Login sessions are stored in `bot/data/sessions` for 30 days of inactivity.
+These files contain Discord tokens and must be kept private. The session store
+supports a single bot process; keep `SESSION_SECRET` unchanged across restarts.
 The dashboard's **My servers** page lists servers where a user has Administrator
 or Manage Server permission. Server-wide saved prompts and settings remain
 restricted to managers. Managers may delete saves from their
@@ -64,11 +67,22 @@ Examples:
 ### Community channel and adoption
 
 A manager must run `/writing-channel channel:#writing` or choose a
-**Community writing channel** in the dashboard before `/group-prompt` works.
+**Community writing channel** under **Commands → Productivity & sharing**
+in the dashboard before `/group-prompt` works.
 Only text and announcement channels are supported. The bot needs View Channel,
 Send Messages, and Embed Links, and the invoking member must be able to view
 and send messages in that channel. Clear the dashboard's channel selection to
 disable group prompts. Posting never pings everyone.
+
+The server's **Bot settings** page contains the message-command prefix and
+server nickname (the bot needs Change Nickname permission). The **Commands**
+page groups commands into theme tabs and places configurable tools alongside
+their command descriptions. **Productivity & sharing → Automatic daily posts**
+can send a story prompt or the `/daily` writing challenge to a chosen channel
+at a UTC time. It is disabled by default, checks every minute, and persists the
+last posted date. After downtime it sends today's missed post once, not older
+days. Editing a schedule does not reset that date. This scheduler, like the
+file-based storage, supports a single bot process.
 
 An adoption claim and its saved OC are written atomically. Claims survive bot
 restarts, and deleting the saved sheet (including manager deletion) does **not**
@@ -77,8 +91,9 @@ not an intellectual-property ownership system. Find the adopted sheet through
 `/savedprompts kind:oc` or the dashboard. An unclaimed offer has no ordinary
 Save button.
 
-Storage now also includes dedicated writing channels and adoption offers.
-Existing version-1 and version-2 files migrate without losing prefixes,
+Storage now also includes dedicated writing channels, adoption offers, and
+daily-post schedules. Existing version-1 through version-3 files migrate to
+version 4 without losing prefixes,
 reaction-role mappings, or saved prompts. Keep a backup of
 `bot/data/dashboard-data.json`.
 

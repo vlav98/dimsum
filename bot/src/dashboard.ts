@@ -9,6 +9,7 @@ import express, {
 } from "express";
 import session from "express-session";
 import { ChannelType, Client, PermissionFlagsBits } from "discord.js";
+import { DashboardSessionStore } from "./dashboardSessionStore";
 import { CommandGroups } from "./commands";
 import {
   CommunitySetupError,
@@ -35,6 +36,8 @@ import {
   setGuildPrefix,
   getWritingChannel,
   setWritingChannel,
+  getDailyPostSettings,
+  setDailyPostSettings,
 } from "./storage";
 
 interface DashboardUser {
@@ -55,14 +58,60 @@ declare module "express-session" {
   interface SessionData {
     oauthState?: string;
     accessToken?: string;
+    refreshToken?: string;
+    accessTokenExpiresAt?: number;
     user?: DashboardUser;
   }
 }
 
 const apiBaseUrl = "https://discord.com/api/v10";
 const sessionCookieName = "dimsum.sid";
-const sessionMaxAgeMs = 8 * 60 * 60 * 1000;
+const sessionMaxAgeMs = 30 * 24 * 60 * 60 * 1000;
 const guildPermissionCacheMs = 30_000;
+
+interface DiscordTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
+class DiscordTokenError extends Error {
+  constructor(readonly status: number) {
+    super(`Discord token request failed (${status}).`);
+  }
+}
+
+async function requestDiscordTokens(
+  parameters: URLSearchParams,
+): Promise<DiscordTokens> {
+  const response = await fetch(`${apiBaseUrl}/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: parameters,
+  });
+  if (!response.ok) throw new DiscordTokenError(response.status);
+  const payload = (await response.json()) as {
+    access_token?: unknown;
+    refresh_token?: unknown;
+    expires_in?: unknown;
+  };
+  if (
+    typeof payload.access_token !== "string" ||
+    !payload.access_token ||
+    typeof payload.refresh_token !== "string" ||
+    !payload.refresh_token ||
+    typeof payload.expires_in !== "number" ||
+    !Number.isFinite(payload.expires_in) ||
+    payload.expires_in <= 0
+  ) {
+    throw new Error("Discord token exchange returned an invalid response.");
+  }
+  return {
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token,
+    expiresAt: Date.now() + payload.expires_in * 1000,
+  };
+}
 
 class DiscordGuildListError extends Error {
   constructor(
@@ -316,24 +365,136 @@ export async function startDashboardServer(
       ? `http://localhost:${port}`
       : "http://localhost:5173");
   const isProduction = process.env.NODE_ENV === "production";
+  const dashboardUrl = new URL(dashboardOrigin);
+  if (
+    dashboardUrl.protocol !== "https:" &&
+    !(
+      dashboardUrl.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(dashboardUrl.hostname)
+    )
+  ) {
+    throw new Error("DASHBOARD_ORIGIN must use HTTPS except on localhost.");
+  }
+  const secureCookie = dashboardUrl.protocol === "https:";
+  const sessionDirectory = path.join(
+    process.env.DIMSUM_DATA_DIR ?? path.resolve(__dirname, "../data"),
+    "sessions",
+  );
+  const store = new DashboardSessionStore(
+    sessionDirectory,
+    sessionMaxAgeMs / 1000,
+  );
+  const refreshing = new Map<string, Promise<DiscordTokens>>();
   const app = express();
-  app.set("trust proxy", isProduction);
+  app.set("trust proxy", secureCookie);
   app.disable("x-powered-by");
   app.use(
     session({
       name: sessionCookieName,
       secret: SESSION_SECRET!,
+      store,
       resave: false,
       saveUninitialized: false,
+      rolling: true,
       cookie: {
         httpOnly: true,
         sameSite: "lax",
-        secure: isProduction,
+        secure: secureCookie,
         maxAge: sessionMaxAgeMs,
       },
     }),
   );
   app.use(express.json({ limit: "16kb" }));
+
+  app.use("/api", async (req, res, next) => {
+    if (
+      req.path.startsWith("/auth/") ||
+      !req.session.user ||
+      !req.session.accessToken
+    ) {
+      next();
+      return;
+    }
+    if (
+      req.session.accessTokenExpiresAt &&
+      req.session.accessTokenExpiresAt > Date.now() + 60_000
+    ) {
+      next();
+      return;
+    }
+    try {
+      let refresh = refreshing.get(req.sessionID);
+      if (!refresh) {
+        refresh = (async () => {
+          const current = await new Promise<session.SessionData | null>(
+            (resolve, reject) =>
+              store.get(req.sessionID, (error, data) => {
+                if (
+                  error &&
+                  !(
+                    typeof error === "object" &&
+                    "code" in error &&
+                    error.code === "ENOENT"
+                  )
+                )
+                  reject(error);
+                else resolve(data ?? null);
+              }),
+          );
+          if (!current?.user || !current.refreshToken) {
+            throw new DiscordTokenError(401);
+          }
+          if (
+            current.accessToken &&
+            current.accessTokenExpiresAt &&
+            current.accessTokenExpiresAt > Date.now() + 60_000
+          ) {
+            return {
+              accessToken: current.accessToken,
+              refreshToken: current.refreshToken,
+              expiresAt: current.accessTokenExpiresAt,
+            };
+          }
+          const tokens = await requestDiscordTokens(
+            new URLSearchParams({
+              client_id: APP_ID!,
+              client_secret: DISCORD_CLIENT_SECRET!,
+              grant_type: "refresh_token",
+              refresh_token: current.refreshToken,
+            }),
+          );
+          req.session.accessToken = tokens.accessToken;
+          req.session.refreshToken = tokens.refreshToken;
+          req.session.accessTokenExpiresAt = tokens.expiresAt;
+          await saveSession(req);
+          guildPermissionCache.delete(req.session.user!.id);
+          return tokens;
+        })();
+        refreshing.set(req.sessionID, refresh);
+        const clearRefresh = () => refreshing.delete(req.sessionID);
+        void refresh.then(clearRefresh, clearRefresh);
+      }
+      const tokens = await refresh;
+      req.session.accessToken = tokens.accessToken;
+      req.session.refreshToken = tokens.refreshToken;
+      req.session.accessTokenExpiresAt = tokens.expiresAt;
+      next();
+    } catch (error) {
+      if (
+        error instanceof DiscordTokenError &&
+        (error.status === 400 || error.status === 401)
+      ) {
+        req.session.destroy((destroyError) => {
+          if (destroyError) return next(destroyError);
+          res
+            .status(401)
+            .json({ error: "Discord session expired; sign in again." });
+        });
+        return;
+      }
+      next(error);
+    }
+  });
 
   app.get("/api/auth/login", async (req, res, next) => {
     try {
@@ -366,32 +527,18 @@ export async function startDashboardServer(
     }
 
     try {
-      const tokenResponse = await fetch(`${apiBaseUrl}/oauth2/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
+      const tokens = await requestDiscordTokens(
+        new URLSearchParams({
           client_id: APP_ID!,
           client_secret: DISCORD_CLIENT_SECRET!,
           grant_type: "authorization_code",
           code,
           redirect_uri: DISCORD_REDIRECT_URI!,
         }),
-      });
-      if (!tokenResponse.ok) {
-        throw new Error(
-          `Discord token exchange failed (${tokenResponse.status}).`,
-        );
-      }
-
-      const tokenPayload = (await tokenResponse.json()) as {
-        access_token?: unknown;
-      };
-      if (typeof tokenPayload.access_token !== "string") {
-        throw new Error("Discord token exchange returned an invalid response.");
-      }
+      );
 
       const userResponse = await fetch(`${apiBaseUrl}/users/@me`, {
-        headers: { Authorization: `Bearer ${tokenPayload.access_token}` },
+        headers: { Authorization: `Bearer ${tokens.accessToken}` },
       });
       if (!userResponse.ok) {
         throw new Error(
@@ -413,7 +560,9 @@ export async function startDashboardServer(
       }
 
       await regenerateSession(req);
-      req.session.accessToken = tokenPayload.access_token;
+      req.session.accessToken = tokens.accessToken;
+      req.session.refreshToken = tokens.refreshToken;
+      req.session.accessTokenExpiresAt = tokens.expiresAt;
       req.session.user = {
         id: profile.id,
         username: profile.username,
@@ -430,7 +579,15 @@ export async function startDashboardServer(
     }
   });
 
-  app.post("/api/auth/logout", (req, res, next) => {
+  app.post("/api/auth/logout", async (req, res, next) => {
+    const refresh = refreshing.get(req.sessionID);
+    if (refresh) {
+      try {
+        await refresh;
+      } catch {
+        // Logout must still remove the session if token renewal failed.
+      }
+    }
     req.session.destroy((error) => {
       if (error) {
         next(error);
@@ -440,7 +597,7 @@ export async function startDashboardServer(
       res.clearCookie(sessionCookieName, {
         httpOnly: true,
         sameSite: "lax",
-        secure: isProduction,
+        secure: secureCookie,
       });
       res.status(204).end();
     });
@@ -570,6 +727,141 @@ export async function startDashboardServer(
   );
 
   app.get(
+    "/api/guilds/:guildId/settings/nickname",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const member = guild.members.me ?? (await guild.members.fetchMe());
+        res.json({
+          nickname: member.nickname,
+          username: client.user?.username ?? "DimSum",
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.put(
+    "/api/guilds/:guildId/settings/nickname",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        const nickname: unknown = req.body?.nickname;
+        if (
+          nickname !== null &&
+          (typeof nickname !== "string" ||
+            !nickname.trim() ||
+            nickname.length > 32)
+        ) {
+          res
+            .status(400)
+            .json({
+              error: "Nickname must be 1–32 characters, or null to reset it.",
+            });
+          return;
+        }
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const member = guild.members.me ?? (await guild.members.fetchMe());
+        if (!member.permissions.has(PermissionFlagsBits.ChangeNickname)) {
+          res
+            .status(400)
+            .json({
+              error: "DimSum needs Change Nickname permission in this server.",
+            });
+          return;
+        }
+        await member.setNickname(
+          nickname,
+          "Updated through the DimSum dashboard",
+        );
+        res.json({ nickname, username: client.user?.username ?? "DimSum" });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/settings/daily",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        if (!client.guilds.cache.has(guildId)) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        res.json(await getDailyPostSettings(guildId));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.put(
+    "/api/guilds/:guildId/settings/daily",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        if (!client.guilds.cache.has(guildId)) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const { enabled, channelId, time, kind } = req.body ?? {};
+        if (
+          typeof enabled !== "boolean" ||
+          (channelId !== null &&
+            (typeof channelId !== "string" || !channelId)) ||
+          (enabled && !channelId) ||
+          typeof time !== "string" ||
+          !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) ||
+          (kind !== "prompt" && kind !== "challenge")
+        ) {
+          res
+            .status(400)
+            .json({
+              error:
+                "Choose an enabled status, channel, UTC time (HH:MM), and prompt or challenge.",
+            });
+          return;
+        }
+        if (enabled) await writingChannel(client, guildId, channelId);
+        res.json(
+          await setDailyPostSettings(guildId, {
+            enabled,
+            channelId,
+            time,
+            kind,
+          }),
+        );
+      } catch (error) {
+        if (error instanceof CommunitySetupError) {
+          res.status(400).json({ error: error.message });
+          return;
+        }
+        next(error);
+      }
+    },
+  );
+
+  app.get(
     "/api/guilds/:guildId/settings/writing",
     requireLogin,
     async (req, res, next) => {
@@ -603,11 +895,9 @@ export async function startDashboardServer(
           channelId !== null &&
           (typeof channelId !== "string" || !channelId)
         ) {
-          res
-            .status(400)
-            .json({
-              error: "Choose a writing channel or null to disable posting.",
-            });
+          res.status(400).json({
+            error: "Choose a writing channel or null to disable posting.",
+          });
           return;
         }
         if (channelId !== null)

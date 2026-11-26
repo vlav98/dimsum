@@ -30,6 +30,8 @@ h3 { font-size: 17px; }
 .form-description, .empty-state { font-size: 13px; }
 .field-help { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .field-label { display: block; margin-bottom: 8px; color: #c3ccda; font-size: 12px; font-weight: 600; }
+.command-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.command-tabs [aria-selected="true"] { border-color: var(--accent); background: #263d52; color: #8bd1fb; }
 
 .page-shell { display: grid; min-height: 100vh; place-items: center; padding: 28px; }
 .welcome-card { width: min(100%, 480px); padding: 44px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }

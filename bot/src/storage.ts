@@ -55,17 +55,30 @@ export interface AdoptionOffer {
 }
 
 interface StoredData {
-  version: 3;
+  version: 4;
   guildPrefixes: Record<string, string>;
   reactionRoleMessages: ReactionRoleMessage[];
   savedPrompts: SavedPrompt[];
   guildWritingChannels: Record<string, string>;
   adoptionOffers: AdoptionOffer[];
+  guildDailyPosts: Record<string, DailyPostSettings>;
 }
+
+export interface DailyPostSettings {
+  enabled: boolean;
+  channelId: string | null;
+  time: string;
+  kind: "prompt" | "challenge";
+  lastPostedDate: string | null;
+}
+
+type StoredDataV3 = Omit<StoredData, "version" | "guildDailyPosts"> & {
+  version: 3;
+};
 
 type StoredDataV2 = Omit<
   StoredData,
-  "version" | "guildWritingChannels" | "adoptionOffers"
+  "version" | "guildWritingChannels" | "adoptionOffers" | "guildDailyPosts"
 > & { version: 2 };
 
 interface StoredDataV1 {
@@ -76,12 +89,13 @@ interface StoredDataV1 {
 }
 
 const emptyData = (): StoredData => ({
-  version: 3,
+  version: 4,
   guildPrefixes: {},
   reactionRoleMessages: [],
   savedPrompts: [],
   guildWritingChannels: {},
   adoptionOffers: [],
+  guildDailyPosts: {},
 });
 
 let pendingWrite: Promise<void> = Promise.resolve();
@@ -99,9 +113,10 @@ function dataFilePath(): string {
 async function readData(): Promise<StoredData> {
   try {
     const raw = await readFile(dataFilePath(), "utf8");
-    const data = JSON.parse(raw) as StoredData | StoredDataV1 | StoredDataV2;
+    const data = JSON.parse(raw) as
+      StoredData | StoredDataV1 | StoredDataV2 | StoredDataV3;
     if (
-      (data.version !== 1 && data.version !== 2 && data.version !== 3) ||
+      ![1, 2, 3, 4].includes(data.version) ||
       !data.guildPrefixes ||
       typeof data.guildPrefixes !== "object" ||
       Array.isArray(data.guildPrefixes) ||
@@ -113,9 +128,10 @@ async function readData(): Promise<StoredData> {
     if (data.version === 1) {
       return {
         ...data,
-        version: 3,
+        version: 4,
         guildWritingChannels: {},
         adoptionOffers: [],
+        guildDailyPosts: {},
         savedPrompts: data.savedPrompts.map((prompt) => ({
           ...prompt,
           kind: "other",
@@ -125,9 +141,10 @@ async function readData(): Promise<StoredData> {
     if (data.version === 2) {
       return {
         ...data,
-        version: 3,
+        version: 4,
         guildWritingChannels: {},
         adoptionOffers: [],
+        guildDailyPosts: {},
       };
     }
     if (
@@ -135,6 +152,16 @@ async function readData(): Promise<StoredData> {
       typeof data.guildWritingChannels !== "object" ||
       Array.isArray(data.guildWritingChannels) ||
       !Array.isArray(data.adoptionOffers)
+    ) {
+      throw new Error("Dashboard data file has an unsupported format.");
+    }
+    if (data.version === 3) {
+      return { ...data, version: 4, guildDailyPosts: {} };
+    }
+    if (
+      !data.guildDailyPosts ||
+      typeof data.guildDailyPosts !== "object" ||
+      Array.isArray(data.guildDailyPosts)
     ) {
       throw new Error("Dashboard data file has an unsupported format.");
     }
@@ -317,6 +344,49 @@ export function setWritingChannel(
   return updateData((data) => {
     if (channelId === null) delete data.guildWritingChannels[guildId];
     else data.guildWritingChannels[guildId] = channelId;
+  });
+}
+
+export async function getDailyPostSettings(
+  guildId: string,
+): Promise<DailyPostSettings> {
+  const data = await currentData();
+  return (
+    data.guildDailyPosts[guildId] ?? {
+      enabled: false,
+      channelId: null,
+      time: "09:00",
+      kind: "prompt",
+      lastPostedDate: null,
+    }
+  );
+}
+
+export function setDailyPostSettings(
+  guildId: string,
+  settings: Omit<DailyPostSettings, "lastPostedDate">,
+): Promise<DailyPostSettings> {
+  return updateData((data) => {
+    const result = {
+      ...settings,
+      lastPostedDate: data.guildDailyPosts[guildId]?.lastPostedDate ?? null,
+    };
+    data.guildDailyPosts[guildId] = result;
+    return result;
+  });
+}
+
+export async function listDailyPostSettings() {
+  return Object.entries((await currentData()).guildDailyPosts);
+}
+
+export function markDailyPostSent(
+  guildId: string,
+  date: string,
+): Promise<void> {
+  return updateData((data) => {
+    const settings = data.guildDailyPosts[guildId];
+    if (settings) settings.lastPostedDate = date;
   });
 }
 
