@@ -40,14 +40,14 @@ button and their own type filters in `/savedprompts` and the dashboard.
 | Command | Options and behavior |
 | --- | --- |
 | `/prompt` | Optional `universe` (fantasy, modern, sci-fi, historical, supernatural), `mood`, and `trope`. Filters shape the scenario, rather than only adding labels. |
-| `/oc` | Optional `style` (fantasy, modern, poetic, mysterious) and `section` (full, personality, appearance, background). Full sheets include name, personality, flaw, phobia, aesthetic, power/role, secret, and appearance traits. |
+| `/oc` and `/ocgen` | Optional `name`, `gender`, `sexuality`, `species`, `hair_color`, `hair_length`, `eye_color`, `life_status`, and `heterochromia` overrides. Leave any property blank to randomize it. `/oc` also accepts `style` and `section`; life status can be alive, deceased, undead, missing, or unknown by default. |
 | `/tag` | Optional `count` from 1–5; draws distinct evocative keywords. |
 | `/twist` | Draws a plot twist for a work in progress. |
 | `/name` | Optional `style`, `count` from 1–5, and `nickname:true`. Returns distinct suggestions. |
 | `/challenge` | Draws a fresh micro-writing task. |
 | `/daily` | Everyone gets the same challenge throughout the UTC day, changing at midnight UTC. The curated challenge list cycles; this is not an automatic posting schedule. |
 | `/oc-duel` or `/matchup` | Optional `first` and `second` OC descriptions; omitted characters are generated. Optional `situation`: debate, survival, or contest. Members decide the outcome; the bot never picks a winner. |
-| `/adopt` | Offers a full OC in a server, optionally choosing its `style`. The first member to click **Adopt this OC** permanently claims it. |
+| `/adopt` | Offers a full OC in a server, optionally choosing its `style` or one of your saved OCs with `saved_oc`. The first member to click **Adopt this OC** permanently claims it. |
 | `/group-prompt` | Posts one shared scenario in the server's manager-configured writing channel. |
 | `/roulette` | Mixes a trope, location, object, and absurd constraint. |
 

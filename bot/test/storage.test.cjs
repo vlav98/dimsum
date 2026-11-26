@@ -9,7 +9,9 @@ require("tsconfig-paths/register");
 
 const storage = require("../src/storage");
 const { saveGeneratedPrompt, showSavedPrompt } = require("../src/savedPrompts");
-const { savedPrompts } = require("../src/commands/slashCommands/personalCreations/savedPrompts");
+const {
+  savedPrompts,
+} = require("../src/commands/slashCommands/personalCreations/savedPrompts");
 const { onMessageCommand } = require("../src/events/onMessageCommand");
 const { onInteraction } = require("../src/events/onInteraction");
 const { ChannelType, MessageFlags } = require("discord.js");
@@ -214,6 +216,7 @@ test("saved prompt buttons filter, paginate, and delete only the owner's saved c
       await onInteraction({
         customId,
         user: { id: userId },
+        isAutocomplete: () => false,
         isButton: () => true,
         deferUpdate: async () => {},
         editReply: async (reply) => {

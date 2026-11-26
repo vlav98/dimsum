@@ -60,6 +60,12 @@ writing channel** in the dashboard. The bot needs View Channel, Send Messages,
 and Embed Links there. See [the command reference](bot/README.md#writing-tools)
 for options and examples.
 
+Both `/oc` and `/ocgen` accept optional name, gender, sexuality, species,
+hair/eye color, hair length, life status, and heterochromia overrides; omitted
+properties are randomized. `/adopt saved_oc:<your character>` lets you offer
+one of your saved OCs to the server. Adoption creates a separate copy for the
+claimant and leaves your saved original untouched.
+
 ## Start the live dashboard
 
 In the Discord Developer Portal, add this redirect URL under **OAuth2 →

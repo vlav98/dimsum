@@ -4,8 +4,18 @@ import { saveGeneratedPrompt, showSavedPrompt } from "../savedPrompts";
 import { handleSavedPromptsButton } from "../commands/slashCommands/personalCreations/savedPrompts";
 import { savedPromptKinds } from "../storage";
 import { adoptOC } from "../adoptions";
+import { autocompleteSavedOC } from "../commands/slashCommands/personalCreations/adopt";
 
 export const onInteraction = async (interaction: Interaction) => {
+  if (interaction.isAutocomplete()) {
+    if (interaction.commandName === "adopt") {
+      await autocompleteSavedOC(interaction);
+    } else {
+      await interaction.respond([]);
+    }
+    return;
+  }
+
   if (interaction.isButton()) {
     if (interaction.customId.startsWith("adopt-oc:")) {
       await adoptOC(

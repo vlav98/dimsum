@@ -94,6 +94,22 @@ test("story filters affect scenarios and OC sections keep the requested traits",
     partial.fields.map((field) => field.name),
     ["Name", "Personality", "Flaw", "Phobia"],
   );
+  const customized = generateOC("modern", "full", {
+    name: "Mira",
+    gender: "non-binary",
+    sexuality: "pansexual",
+    eyeColor: "blue and green",
+    lifeStatus: "undead",
+  }).toJSON();
+  const customizedFields = Object.fromEntries(
+    customized.fields.map(({ name, value }) => [name, value]),
+  );
+  assert.equal(customizedFields.Name, "Mira");
+  assert.equal(customizedFields.Gender, "non-binary");
+  assert.equal(customizedFields.Sexuality, "pansexual");
+  assert.equal(customizedFields["Eye color"], "blue and green");
+  assert.equal(customizedFields["Heterochromia"], "Custom");
+  assert.equal(customizedFields["Life status"], "undead");
   const names = generateNames("modern", 5);
   assert.equal(new Set(names).size, 5);
   const nicknames = generateNames("poetic", 5, true);
@@ -257,6 +273,7 @@ test("version-two data migrates and concurrent adoption claims remain exclusive 
     const tag = await invoke("tag", { count: 2 });
     await onInteraction({
       customId: "save-generated-prompt:tag",
+      isAutocomplete: () => false,
       isButton: () => true,
       message: { id: "tag-message", embeds: [tag.embeds[0].toJSON()] },
       guildId: "guild",
@@ -291,6 +308,7 @@ test("adoption button routing saves the offered sheet and disables further publi
     let publicUpdate;
     const click = {
       customId: "adopt-oc:offer-message",
+      isAutocomplete: () => false,
       isButton: () => true,
       guildId: "guild",
       user: { id: "claimant", username: "claimant", globalName: null },
@@ -319,6 +337,91 @@ test("adoption button routing saves the offered sheet and disables further publi
     });
     assert.match(confirmation, /Someone else/);
     assert.equal((await storage.listSavedPromptsForUser("late")).length, 0);
+  });
+});
+
+test("saved OC autocomplete only offers the caller's OCs and adoption copies the sheet", async () => {
+  await withStore(async () => {
+    const saveOC = (userId, messageId, name) =>
+      storage.savePrompt({
+        id: `${userId}:${messageId}`,
+        sourceMessageId: messageId,
+        userId,
+        username: userId,
+        displayName: userId,
+        guildId: null,
+        guildName: null,
+        kind: "oc",
+        content: `Original character sheet\n\n${name} | fantasy | Full sheet\n\nName: ${name}\n\nGender: non-binary`,
+        createdAt: new Date().toISOString(),
+      });
+    await saveOC("owner", "saved-oc", "Aurora");
+    await saveOC("someone-else", "private-oc", "Aurora's twin");
+
+    let choices;
+    await onInteraction({
+      isAutocomplete: () => true,
+      commandName: "adopt",
+      options: { getFocused: () => "aurora" },
+      user: { id: "owner" },
+      respond: async (value) => {
+        choices = value;
+      },
+    });
+    assert.deepEqual(
+      choices.map(({ value }) => value),
+      ["owner:saved-oc"],
+    );
+
+    const inaccessible = await invoke(
+      "adopt",
+      { saved_oc: "owner:saved-oc" },
+      {
+        user: { id: "someone-else", username: "someone-else" },
+        guildId: "guild",
+        guild: { name: "Guild" },
+      },
+    );
+    assert.match(inaccessible, /could not be found in your library/);
+
+    const response = await invoke(
+      "adopt",
+      { saved_oc: "owner:saved-oc" },
+      {
+        user: { id: "owner", username: "owner", globalName: "Owner" },
+        guildId: "guild",
+        guild: { name: "Guild" },
+        fetchReply: async () => ({ id: "saved-oc-offer" }),
+      },
+    );
+    assert.match(response.embeds[0].toJSON().description, /Name: Aurora/);
+    assert.match(
+      response.embeds[0].toJSON().footer.text,
+      /original owner keeps their saved copy/i,
+    );
+
+    let confirmation;
+    await onInteraction({
+      customId: "adopt-oc:saved-oc-offer",
+      isAutocomplete: () => false,
+      isButton: () => true,
+      guildId: "guild",
+      user: { id: "adopter", username: "adopter", globalName: "Adopter" },
+      message: { id: "saved-oc-offer", edit: async () => {} },
+      deferReply: async () => {},
+      editReply: async (value) => {
+        confirmation = value;
+      },
+    });
+    assert.match(confirmation, /OC adopted/);
+    assert.match(
+      (await storage.listSavedPromptsForUser("adopter", "oc"))[0].content,
+      /Name: Aurora/,
+    );
+    assert.equal(
+      (await storage.listSavedPromptsForUser("owner", "oc")).length,
+      1,
+    );
   });
 });
 

@@ -1,6 +1,10 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { generatedCommand } from "../../generatedCommand";
 import { RandomOCGenerator } from "./ocGenerator/randomOCGenerator";
+import {
+  addCharacterOptions,
+  getCharacterOptions,
+} from "./ocGenerator/options";
 import { fanficPrompt, randomPrompt } from "./randomPrompt";
 import { twoCharPrompt } from "./twoCharPrompt";
 import {
@@ -50,9 +54,13 @@ export const prompt = generatedCommand(
 );
 
 export const oc = generatedCommand(
-  new SlashCommandBuilder()
-    .setName("oc")
-    .setDescription("Generate a full or partial original character sheet")
+  addCharacterOptions(
+    new SlashCommandBuilder()
+      .setName("oc")
+      .setDescription(
+        "Generate a character sheet; leave properties blank to randomize them",
+      ),
+  )
     .addStringOption((option) =>
       option
         .setName("section")
@@ -70,6 +78,7 @@ export const oc = generatedCommand(
     generateOC(
       interaction.options.getString("style"),
       interaction.options.getString("section"),
+      getCharacterOptions(interaction),
     ),
 );
 

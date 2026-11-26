@@ -8,6 +8,7 @@ import {
   randomizeSexuality,
   randomizeSpecies,
 } from "../commands/slashCommands/antiWriterBlock/ocGenerator/utils";
+import { Heterochromia } from "../types/character/eyeColors";
 
 export function pick<T>(items: readonly T[]): T {
   if (items.length === 0)
@@ -211,6 +212,24 @@ export const ocSections = [
   "appearance",
   "background",
 ] as const;
+export const lifeStatuses = [
+  "Alive",
+  "Deceased",
+  "Undead",
+  "Missing",
+  "Unknown",
+] as const;
+export interface CharacterOptions {
+  name?: string;
+  gender?: string;
+  sexuality?: string;
+  species?: string;
+  hairColor?: string;
+  hairLength?: string;
+  eyeColor?: string;
+  lifeStatus?: string;
+  heterochromia?: boolean | null;
+}
 const personalities = [
   "patient",
   "curious",
@@ -266,17 +285,78 @@ const secrets = [
   "Is secretly afraid their greatest success was an accident",
 ];
 
+function characterTraits(style?: string, options: CharacterOptions = {}) {
+  const name = options.name ?? generateNames(style)[0];
+  const gender = options.gender ?? randomizeGender();
+  const species =
+    options.species ?? (style === "modern" ? "Human" : randomizeSpecies());
+  const sexuality = options.sexuality ?? randomizeSexuality();
+  const hairColor = options.hairColor ?? randomizeHairColor().join(", ");
+  const hairLength = options.hairLength ?? randomizeHairLength();
+  const lifeStatus = options.lifeStatus ?? pick(lifeStatuses);
+  let heterochromia: Heterochromia | "Custom";
+  let eyeColor: string;
+  if (options.eyeColor) {
+    eyeColor = options.eyeColor;
+    heterochromia =
+      options.heterochromia === null || options.heterochromia === undefined
+        ? "Custom"
+        : options.heterochromia
+          ? Heterochromia.YES
+          : Heterochromia.NO;
+  } else {
+    const eyeType =
+      options.heterochromia === null || options.heterochromia === undefined
+        ? randomizeHeterochromia()
+        : options.heterochromia
+          ? Heterochromia.YES
+          : Heterochromia.NO;
+    heterochromia = eyeType;
+    const colors = randomizeEyeColor(eyeType);
+    eyeColor = Array.isArray(colors) ? colors.join(" & ") : colors;
+  }
+
+  return {
+    name,
+    gender,
+    species,
+    sexuality,
+    hairColor,
+    hairLength,
+    eyeColor,
+    heterochromia,
+    lifeStatus,
+  };
+}
+
+export function generateRandomOC(options: CharacterOptions = {}) {
+  const traits = characterTraits(undefined, options);
+  return new EmbedBuilder()
+    .setTitle("Random OC Generator")
+    .setDescription("Here is your random OC!")
+    .addFields(
+      { name: "Name", value: traits.name },
+      { name: "Gender", value: traits.gender },
+      { name: "Species", value: traits.species },
+      { name: "Sexuality", value: traits.sexuality },
+      { name: "Hair color", value: traits.hairColor },
+      { name: "Hair length", value: traits.hairLength },
+      { name: "Eye color", value: traits.eyeColor },
+      { name: "Heterochromia", value: traits.heterochromia },
+      { name: "Life status", value: traits.lifeStatus },
+    );
+}
+
 export function generateOC(
   styleValue?: string | null,
   sectionValue?: string | null,
+  options: CharacterOptions = {},
 ) {
   const style = choose(nameStyles, styleValue);
   const section = sectionValue ? choose(ocSections, sectionValue) : "full";
-  const name = generateNames(style)[0];
-  const heterochromia = randomizeHeterochromia();
-  const eyes = randomizeEyeColor(heterochromia);
+  const traits = characterTraits(style, options);
   const fields = [
-    { name: "Name", value: name, section: "all" },
+    { name: "Name", value: traits.name, section: "all" },
     {
       name: "Personality",
       value: sample(personalities, 2).join(", "),
@@ -294,34 +374,35 @@ export function generateOC(
       section: "background",
     },
     { name: "Secret", value: pick(secrets), section: "background" },
-    { name: "Gender", value: randomizeGender(), section: "appearance" },
-    {
-      name: "Species",
-      value: style === "modern" ? "Human" : randomizeSpecies(),
-      section: "appearance",
-    },
-    { name: "Sexuality", value: randomizeSexuality(), section: "background" },
+    { name: "Gender", value: traits.gender, section: "appearance" },
+    { name: "Species", value: traits.species, section: "appearance" },
+    { name: "Sexuality", value: traits.sexuality, section: "background" },
     {
       name: "Hair color",
-      value: randomizeHairColor().join(", "),
+      value: traits.hairColor,
       section: "appearance",
     },
     {
       name: "Hair length",
-      value: randomizeHairLength(),
+      value: traits.hairLength,
       section: "appearance",
     },
     {
       name: "Eye color",
-      value: Array.isArray(eyes) ? eyes.join(" & ") : eyes,
+      value: traits.eyeColor,
       section: "appearance",
     },
-    { name: "Heterochromia", value: heterochromia, section: "appearance" },
+    {
+      name: "Heterochromia",
+      value: traits.heterochromia,
+      section: "appearance",
+    },
+    { name: "Life status", value: traits.lifeStatus, section: "background" },
   ];
   return new EmbedBuilder()
     .setTitle("Original character sheet")
     .setDescription(
-      `${name} | ${style} | ${section === "full" ? "Full sheet" : section}`,
+      `${traits.name} | ${style} | ${section === "full" ? "Full sheet" : section}`,
     )
     .addFields(
       fields
