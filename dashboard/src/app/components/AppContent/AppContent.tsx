@@ -1,4 +1,5 @@
 import type { Guild } from '../../../lib/api';
+import ContentCard from '../../../components/common/ContentCard/ContentCard';
 import type { DashboardData, User } from '../../../types/dashboard';
 import Overview from '../../../pages/Overview/Overview';
 import Servers from '../../../pages/Servers/Servers';
@@ -22,12 +23,12 @@ export default function AppContent({
 }) {
   if (!dashboard)
     return (
-      <section className="content-card">
+      <ContentCard>
         <h1>Dashboard unavailable</h1>
         <button className="secondary-button" onClick={onRefresh}>
           Try again
         </button>
-      </section>
+      </ContentCard>
     );
   if (route === '#/' || route === '#')
     return <Overview user={user} dashboard={dashboard} onRefresh={onRefresh} />;
@@ -48,10 +49,10 @@ export default function AppContent({
       />
     );
   return (
-    <section className="content-card">
+    <ContentCard>
       <h1>Page unavailable</h1>
       <p>This server is not shared with the bot, or you do not have access.</p>
       <a href="#/">Back to Overview</a>
-    </section>
+    </ContentCard>
   );
 }

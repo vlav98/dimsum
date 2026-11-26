@@ -1,4 +1,5 @@
 import type { Details } from '../../types';
+import ContentCard from '../../../../components/common/ContentCard/ContentCard';
 import type { ReactionRoleEditor } from '../../hooks/useReactionRoleEditor';
 import ReactionRoleForm from '../ReactionRoleForm/ReactionRoleForm';
 import ConfiguredMessages from '../ConfiguredMessages/ConfiguredMessages';
@@ -11,7 +12,7 @@ export default function ReactionRoles({
   editor: ReactionRoleEditor;
 }) {
   return (
-    <section className="content-card feature-card">
+    <ContentCard className="feature-card">
       <p className="eyebrow">SELF-ASSIGNABLE ROLES</p>
       <h2>
         {editor.editing
@@ -31,6 +32,6 @@ export default function ReactionRoles({
         <ReactionRoleForm details={details} editor={editor} />
       )}
       <ConfiguredMessages messages={details.messages} editor={editor} />
-    </section>
+    </ContentCard>
   );
 }

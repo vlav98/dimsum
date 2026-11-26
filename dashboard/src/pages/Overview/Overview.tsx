@@ -1,4 +1,5 @@
 import type { DashboardData, User } from '../../types/dashboard';
+import ContentCard from '../../components/common/ContentCard/ContentCard';
 import CommandList from '../../components/common/CommandList/CommandList';
 
 function formatUptime(uptimeMs: number | null) {
@@ -76,7 +77,7 @@ export default function Overview({
           </p>
         </article>
       </div>
-      <section className="content-card personal-prompts">
+      <ContentCard className="personal-prompts">
         <h2>Slash commands</h2>
         {categories.map((category) => (
           <div key={category} className="command-group">
@@ -88,7 +89,7 @@ export default function Overview({
             />
           </div>
         ))}
-      </section>
+      </ContentCard>
     </>
   );
 }

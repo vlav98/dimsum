@@ -2,15 +2,17 @@ import { useState } from 'react';
 import type { Guild } from '../../lib/api';
 import type { DashboardData } from '../../types/dashboard';
 import CommandList from '../../components/common/CommandList/CommandList';
+import ContentCard from '../../components/common/ContentCard/ContentCard';
 import Feedback from '../../components/common/Feedback/Feedback';
 import LoadState from '../../components/common/LoadState/LoadState';
-import TabList from '../../components/common/TabList/TabList';
+import CommandThemeTabs from './components/CommandThemeTabs/CommandThemeTabs';
 import DailyPostSettings from './components/DailyPostSettings/DailyPostSettings';
 import ReactionRoles from './components/ReactionRoles/ReactionRoles';
 import WritingChannelSettings from './components/WritingChannelSettings/WritingChannelSettings';
 import { useCommandSettings } from './hooks/useCommandSettings';
 import { useReactionRoleEditor } from './hooks/useReactionRoleEditor';
 import { useWritingChannel } from './hooks/useWritingChannel';
+import './Commands.css';
 
 export default function Commands({
   guild,
@@ -35,36 +37,29 @@ export default function Commands({
 
   if (!details)
     return (
-      <section className="content-card">
+      <ContentCard>
         <Feedback error={error} />
         <LoadState
           error={error}
           label="Loading command settings…"
           onRetry={settings.refresh}
         />
-      </section>
+      </ContentCard>
     );
   return (
-    <>
-      <section className="content-card">
-        <h2>Commands</h2>
-        <TabList
-          label="Command themes"
-          className="command-tabs"
-          tabClassName="secondary-button"
-          idPrefix="theme"
-          panelId="command-theme-panel"
-          tabs={categories.map((name) => ({ value: name, label: name }))}
-          value={category}
-          onChange={setCategory}
-        />
-      </section>
+    <div className="command-settings">
+      <CommandThemeTabs
+        categories={categories}
+        category={category}
+        onChange={setCategory}
+      />
       <div
+        className="command-theme-panel"
         role="tabpanel"
         id="command-theme-panel"
         aria-labelledby={`theme-${categories.indexOf(category)}`}
       >
-        <section className="content-card">
+        <ContentCard>
           <h3>{category}</h3>
           <CommandList commands={activeCommands} />
           {!['daily', 'group-prompt', 'writing-channel', 'reactionroles'].some(
@@ -75,7 +70,7 @@ export default function Commands({
               server-wide settings are needed.
             </p>
           )}
-        </section>
+        </ContentCard>
         <Feedback error={error} />
         <div className="feature-grid">
           {hasCommand('daily') && (
@@ -95,6 +90,6 @@ export default function Commands({
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

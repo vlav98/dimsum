@@ -1,4 +1,5 @@
 import ChannelCombobox from '../../../../components/common/ChannelCombobox/ChannelCombobox';
+import ContentCard from '../../../../components/common/ContentCard/ContentCard';
 import type { WritingChannel } from '../../hooks/useWritingChannel';
 import type { WritingSettings } from '../../types';
 
@@ -10,7 +11,7 @@ export default function WritingChannelSettings({
   model: WritingChannel;
 }) {
   return (
-    <section className="content-card feature-card">
+    <ContentCard className="feature-card">
       <div>
         <h2>Community writing channel</h2>
         <p className="form-description">
@@ -40,6 +41,6 @@ export default function WritingChannelSettings({
           </p>
         </form>
       </div>
-    </section>
+    </ContentCard>
   );
 }

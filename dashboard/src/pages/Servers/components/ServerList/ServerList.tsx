@@ -1,9 +1,10 @@
 import type { Guild } from '../../../../lib/api';
+import ContentCard from '../../../../components/common/ContentCard/ContentCard';
 import './ServerList.css';
 
 export default function ServerList({ guilds }: { guilds: Guild[] }) {
   return (
-    <section className="content-card">
+    <ContentCard>
       <div className="section-heading">
         <h2>Your servers</h2>
         <span className="count-pill">{guilds.length}</span>
@@ -72,6 +73,6 @@ export default function ServerList({ guilds }: { guilds: Guild[] }) {
           })}
         </ul>
       )}
-    </section>
+    </ContentCard>
   );
 }

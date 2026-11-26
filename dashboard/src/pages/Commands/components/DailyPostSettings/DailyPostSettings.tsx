@@ -1,4 +1,5 @@
 import type { Channel } from '../../../../components/common/ChannelCombobox/types';
+import ContentCard from '../../../../components/common/ContentCard/ContentCard';
 import Feedback from '../../../../components/common/Feedback/Feedback';
 import LoadState from '../../../../components/common/LoadState/LoadState';
 import { useDailyPostSettings } from '../../hooks/useDailyPostSettings';
@@ -13,7 +14,7 @@ export default function DailyPostSettings({
 }) {
   const model = useDailyPostSettings(guildId);
   return (
-    <section className="content-card feature-card">
+    <ContentCard className="feature-card">
       <h2>Automatic daily posts</h2>
       <p className="form-description">
         Post a story prompt or the /daily challenge automatically. Times are
@@ -36,6 +37,6 @@ export default function DailyPostSettings({
           channels={channels}
         />
       )}
-    </section>
+    </ContentCard>
   );
 }

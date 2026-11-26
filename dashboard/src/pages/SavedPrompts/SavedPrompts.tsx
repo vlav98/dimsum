@@ -1,4 +1,5 @@
 import { kindLabels, type Guild } from '../../lib/api';
+import ContentCard from '../../components/common/ContentCard/ContentCard';
 import Feedback from '../../components/common/Feedback/Feedback';
 import TabList from '../../components/common/TabList/TabList';
 import SavedPromptList from './components/SavedPromptList/SavedPromptList';
@@ -7,7 +8,7 @@ import { useSavedPrompts } from './hooks/useSavedPrompts';
 export default function SavedPrompts({ guild }: { guild?: Guild }) {
   const model = useSavedPrompts(guild);
   return (
-    <section className="content-card feature-card">
+    <ContentCard className="feature-card">
       <h2>{guild ? `Saved in ${guild.name}` : 'My saved prompts'}</h2>
       {guild && (
         <TabList
@@ -66,6 +67,6 @@ export default function SavedPrompts({ guild }: { guild?: Guild }) {
           onDelete={(prompt) => void model.deletePrompt(prompt)}
         />
       )}
-    </section>
+    </ContentCard>
   );
 }

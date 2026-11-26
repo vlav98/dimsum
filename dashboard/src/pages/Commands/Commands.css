@@ -1,0 +1,2 @@
+.command-settings, .command-theme-panel { display: grid; row-gap: 24px; min-width: 0; }
+.command-theme-panel > .feature-grid:empty { display: none; }

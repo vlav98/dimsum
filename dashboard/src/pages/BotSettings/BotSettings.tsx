@@ -1,4 +1,5 @@
 import type { Guild } from '../../lib/api';
+import ContentCard from '../../components/common/ContentCard/ContentCard';
 import Feedback from '../../components/common/Feedback/Feedback';
 import LoadState from '../../components/common/LoadState/LoadState';
 import SettingForm from '../../components/common/SettingForm/SettingForm';
@@ -8,7 +9,7 @@ export default function BotSettings({ guild }: { guild: Guild }) {
   const model = useBotSettings(guild.id);
   const { settings, nicknameSettings } = model;
   return (
-    <section className="content-card">
+    <ContentCard>
       <h2>Bot settings</h2>
       <Feedback error={model.error} notice={model.notice} />
       {!settings || !nicknameSettings ? (
@@ -53,6 +54,6 @@ export default function BotSettings({ guild }: { guild: Guild }) {
           />
         </fieldset>
       )}
-    </section>
+    </ContentCard>
   );
 }
