@@ -34,6 +34,25 @@ Reaction-role messages can be edited in place in the dashboard. Emoji inputs
 accept Unicode, custom emoji mentions, and known default/server `:name:` codes.
 The bot needs Read Message History to edit existing messages.
 
+## Source layout
+
+- `src/app.ts`: bot entrypoint.
+- `src/commands/`: message commands and themed slash-command handlers.
+- `src/events/`: Discord event handlers.
+- `src/features/<feature>/`: adoption, community channels and daily posts,
+  reaction roles, and saved-prompt services.
+- `src/generators/`: reusable character, writing, and fanfic generation.
+- `src/components/common/<component>/`: reusable Discord message components.
+- `src/dashboard/`: Express API server and persistent session store.
+- `src/storage/`: shared file persistence and migrations.
+- `src/config/`, `src/interfaces/`, `src/types/`, `src/utils/`: configuration,
+  contracts, declarations, and general helpers.
+- `test/`: bot tests.
+
+Keep command-specific helpers with their command; put reusable generation and
+feature logic in their corresponding folders instead of importing it from a
+command's implementation.
+
 ## Writing tools
 
 Run `/help` for commands grouped by theme. All generators use curated local
@@ -112,8 +131,8 @@ All slash commands live in camelCase theme folders under
 
 Each theme's `index.ts` exports its command list. The parent `index.ts` combines
 them into `CommandGroups` and `CommandList`, used by registration, `/help`, and
-dashboard categories. OC generator helpers live in
-`antiWriterBlock/ocGenerator/utils`; reusable writing generation lives in
+dashboard categories. Shared OC randomizers live in
+`src/generators/character/`; reusable writing generation lives in
 `src/generators/writing.ts`. Discord slash-command names and behavior are
 unchanged.
 
@@ -123,7 +142,7 @@ Use `/randomprompt` or `/fanficprompt`, optionally providing a ship name. Both
 select a prompt, setting, genre, and trope from the bot's built-in lists, then
 add three distinct AO3-inspired additional tags. Tags matching the selected
 genre or trope are excluded to avoid repetition. The tags are curated locally
-in `bot/src/commands/slashCommands/antiWriterBlock/fanficTags.ts`; this does not
+in `src/generators/fanfic/tags.ts`; this does not
 connect to or copy data live from AO3.
 
 Use the **Save prompt** button on generated prompt replies to save them in the

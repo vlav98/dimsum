@@ -6,9 +6,9 @@ import {
   MessageFlags,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
-import { adoptionButton } from "../../../adoptions";
+import { adoptionButton } from "../../../features/adoptions/adoptions";
 import { generateOC, nameStyles } from "../../../generators/writing";
-import { promptText } from "../../../savedPrompts";
+import { promptText } from "../../../features/savedPrompts/savedPrompts";
 import {
   createAdoptionOffer,
   getSavedPromptForUser,

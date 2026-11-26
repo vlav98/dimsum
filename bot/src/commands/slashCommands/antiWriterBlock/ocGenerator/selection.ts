@@ -9,7 +9,7 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
 } from "discord.js";
-import { savePromptButton } from "../../../../promptComponents";
+import { savePromptButton } from "../../../../components/common/promptButtons/promptButtons";
 import {
   CharacterOptions,
   generateOC,

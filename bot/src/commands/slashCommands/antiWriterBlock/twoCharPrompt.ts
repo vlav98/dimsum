@@ -4,7 +4,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
-import { savePromptButton } from "../../../promptComponents";
+import { savePromptButton } from "../../../components/common/promptButtons/promptButtons";
 
 const prompts = [
   "Them resting together and talking to each other before falling asleep.",

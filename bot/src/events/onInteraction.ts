@@ -1,9 +1,9 @@
 import { Interaction } from "discord.js";
 import { CommandList } from "../commands/index";
-import { saveGeneratedPrompt, showSavedPrompt } from "../savedPrompts";
+import { saveGeneratedPrompt, showSavedPrompt } from "../features/savedPrompts/savedPrompts";
 import { handleSavedPromptsButton } from "../commands/slashCommands/personalCreations/savedPrompts";
 import { savedPromptKinds } from "../storage";
-import { adoptOC } from "../adoptions";
+import { adoptOC } from "../features/adoptions/adoptions";
 import { autocompleteSavedOC } from "../commands/slashCommands/personalCreations/adopt";
 import {
   generateSelectedOC,

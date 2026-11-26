@@ -10,10 +10,10 @@ const {
 const { Heterochromia } = require("../src/types/character/eyeColors");
 const {
   randomizeEyeColor,
-} = require("../src/commands/slashCommands/antiWriterBlock/ocGenerator/utils/randomEyeColors");
+} = require("../src/generators/character/randomEyeColors");
 const {
   randomizeSpecies,
-} = require("../src/commands/slashCommands/antiWriterBlock/ocGenerator/utils/randomSpecies");
+} = require("../src/generators/character/randomSpecies");
 const { generateRandomOC } = require("../src/generators/writing");
 const {
   fanficPrompt,

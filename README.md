@@ -39,6 +39,20 @@ For development with automatic restarts:
 npm run dev
 ```
 
+## Source organization
+
+The `bot/` and `dashboard/` workspaces keep their own source and tests.
+Dashboard routes live in `dashboard/src/pages/<PageName>/`; page-only
+components belong in that page's `components/<ComponentName>/` folder.
+Reusable UI belongs in `dashboard/src/components/common/<ComponentName>/`,
+with component styles and tests beside it. The app shell lives in `src/app/`.
+
+The bot keeps themed commands under `bot/src/commands/`, reusable generators
+under `src/generators/`, and community services under `src/features/`.
+Its dashboard API and sessions live in `src/dashboard/`, persistence in
+`src/storage/`, and reusable Discord message components in `src/components/common/`.
+See the workspace READMEs for details.
+
 ## Writing and community commands
 
 Use `/help` to browse the themed command catalog. Existing commands such as

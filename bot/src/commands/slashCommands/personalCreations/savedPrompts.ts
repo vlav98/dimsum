@@ -15,7 +15,7 @@ import {
   SavedPromptKind,
   savedPromptKinds,
 } from "../../../storage";
-import { promptKindLabels } from "../../../savedPrompts";
+import { promptKindLabels } from "../../../features/savedPrompts/savedPrompts";
 
 const promptKinds = savedPromptKinds;
 type PromptFilter = SavedPromptKind | "all";

@@ -1,0 +1,8 @@
+.emoji-control { min-width: 0; }
+.emoji-preview { display: inline-flex; padding: 6px; font-size: 22px; }
+.emoji-preview img, .emoji-choice img { width: 26px; height: 26px; object-fit: contain; }
+.emoji-picker summary { margin: 8px 0; color: var(--accent); cursor: pointer; font-size: 12px; }
+.emoji-picker .field-label { margin: 12px 0 8px; }
+.emoji-grid { display: flex; flex-wrap: wrap; gap: 5px; max-height: 180px; overflow-y: auto; }
+.emoji-choice { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #435067; border-radius: 4px; background: #303948; color: #fff; font-size: 22px; }
+.emoji-choice:hover { border-color: var(--accent); }

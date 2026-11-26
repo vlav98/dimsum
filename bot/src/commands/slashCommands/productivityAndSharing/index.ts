@@ -8,9 +8,9 @@ import {
 import { Command } from "../../../interfaces/Command";
 import { generatedCommand } from "../../generatedCommand";
 import { generatePrompt, writingChallenge } from "../../../generators/writing";
-import { CommunitySetupError, writingChannel } from "../../../community";
+import { CommunitySetupError, writingChannel } from "../../../features/community/channels";
 import { getWritingChannel } from "../../../storage";
-import { savePromptButton } from "../../../promptComponents";
+import { savePromptButton } from "../../../components/common/promptButtons/promptButtons";
 
 export const challenge = generatedCommand(
   new SlashCommandBuilder()

@@ -6,7 +6,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
-import { CommunitySetupError, writingChannel } from "../../../community";
+import { CommunitySetupError, writingChannel } from "../../../features/community/channels";
 import { setWritingChannel } from "../../../storage";
 
 export const writingChannelCommand: Command = {

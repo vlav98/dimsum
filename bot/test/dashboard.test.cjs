@@ -7,8 +7,8 @@ const { test } = require("node:test");
 require("ts-node/register");
 require("tsconfig-paths/register");
 
-const { startDashboardServer } = require("../src/dashboard");
-const { DashboardSessionStore } = require("../src/dashboardSessionStore");
+const { startDashboardServer } = require("../src/dashboard/server");
+const { DashboardSessionStore } = require("../src/dashboard/sessionStore");
 const {
   savePrompt,
   saveReactionRoleMessage,

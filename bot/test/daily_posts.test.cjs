@@ -8,7 +8,7 @@ require("ts-node/register");
 require("tsconfig-paths/register");
 
 const { ChannelType, Collection } = require("discord.js");
-const { createDailyPostRunner } = require("../src/dailyPosts");
+const { createDailyPostRunner } = require("../src/features/community/dailyPosts");
 const storage = require("../src/storage");
 
 test("daily posts migrate storage, respect schedules, and persist the last posted day", async () => {

@@ -6,7 +6,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
-import { publishReactionRoleMessage } from "../../../reactionRoles";
+import { publishReactionRoleMessage } from "../../../features/reactionRoles/reactionRoles";
 import { ReactionRoleMapping } from "../../../storage";
 
 const reactionRoleCommand = new SlashCommandBuilder()

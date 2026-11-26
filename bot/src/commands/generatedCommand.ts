@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { Command } from "../interfaces/Command";
-import { savePromptButton } from "../promptComponents";
+import { savePromptButton } from "../components/common/promptButtons/promptButtons";
 import { SavedPromptKind } from "../storage";
 
 export function generatedCommand(

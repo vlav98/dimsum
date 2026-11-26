@@ -8,7 +8,7 @@ require("ts-node/register");
 require("tsconfig-paths/register");
 
 const storage = require("../src/storage");
-const { saveGeneratedPrompt, showSavedPrompt } = require("../src/savedPrompts");
+const { saveGeneratedPrompt, showSavedPrompt } = require("../src/features/savedPrompts/savedPrompts");
 const {
   savedPrompts,
 } = require("../src/commands/slashCommands/personalCreations/savedPrompts");

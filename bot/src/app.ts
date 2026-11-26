@@ -4,9 +4,9 @@ import { IntentOptions } from "./config/intentOptions";
 import { onInteraction } from "./events/onInteraction";
 import { onReady } from "./events/onReady";
 import { onMessageCommand } from "./events/onMessageCommand";
-import { startDashboardServer } from "./dashboard";
-import { applyReactionRole } from "./reactionRoles";
-import { startDailyPosts } from "./dailyPosts";
+import { startDashboardServer } from "./dashboard/server";
+import { applyReactionRole } from "./features/reactionRoles/reactionRoles";
+import { startDailyPosts } from "./features/community/dailyPosts";
 
 (async () => {
   if (!process.env.DISCORD_TOKEN) {

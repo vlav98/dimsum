@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { generatedCommand } from "../../generatedCommand";
 import { generateMatchup, generateRoulette } from "../../../generators/writing";
-import { savePromptButton } from "../../../promptComponents";
+import { savePromptButton } from "../../../components/common/promptButtons/promptButtons";
 import { getSavedPromptForUser, SavedPrompt } from "../../../storage";
 
 const savedOCPrefix = "saved-oc:";

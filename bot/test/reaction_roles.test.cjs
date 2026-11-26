@@ -8,7 +8,7 @@ const {
   PermissionFlagsBits,
   PermissionsBitField,
 } = require("discord.js");
-const { canBeReactionAssigned } = require("../src/reactionRoles");
+const { canBeReactionAssigned } = require("../src/features/reactionRoles/reactionRoles");
 
 function makeRole(rolePermissions, roleId = "role-1") {
   return {
