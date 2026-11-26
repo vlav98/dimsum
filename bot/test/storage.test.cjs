@@ -217,6 +217,7 @@ test("saved prompt buttons filter, paginate, and delete only the owner's saved c
         customId,
         user: { id: userId },
         isAutocomplete: () => false,
+        isStringSelectMenu: () => false,
         isButton: () => true,
         deferUpdate: async () => {},
         editReply: async (reply) => {

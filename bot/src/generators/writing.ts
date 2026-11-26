@@ -229,6 +229,61 @@ export interface CharacterOptions {
   eyeColor?: string;
   lifeStatus?: string;
   heterochromia?: boolean | null;
+  omit?: string;
+}
+
+export class InvalidOmittedPropertyError extends Error {}
+
+const randomOCProperties = [
+  ["name", "Name"],
+  ["gender", "Gender"],
+  ["species", "Species"],
+  ["sexuality", "Sexuality"],
+  ["hair_color", "Hair color"],
+  ["hair_length", "Hair length"],
+  ["eye_color", "Eye color"],
+  ["heterochromia", "Heterochromia"],
+  ["life_status", "Life status"],
+] as const;
+const fullOCProperties = [
+  ...randomOCProperties,
+  ["personality", "Personality"],
+  ["flaw", "Flaw"],
+  ["phobia", "Phobia"],
+  ["aesthetic", "Aesthetic"],
+  ["power_role", "Power / role"],
+  ["secret", "Secret"],
+] as const;
+
+export function getOmissionChoices(fullSheet: boolean) {
+  const properties = fullSheet ? fullOCProperties : randomOCProperties;
+  return properties.map(([value, name]) => ({ name, value }));
+}
+
+export function parseOmittedProperties(
+  value: string | undefined,
+  fullSheet: boolean,
+) {
+  const properties = fullSheet ? fullOCProperties : randomOCProperties;
+  const allowed = new Set<string>(properties.map(([name]) => name));
+  const requested = (value ?? "")
+    .split(",")
+    .map((property) =>
+      property
+        .trim()
+        .toLocaleLowerCase()
+        .replace(/[\s/-]+/g, "_"),
+    )
+    .filter(Boolean);
+  const invalid = requested.filter((property) => !allowed.has(property));
+  if (invalid.length > 0) {
+    throw new InvalidOmittedPropertyError(
+      `Unknown property to omit: ${invalid.join(", ")}. Valid properties: ${[
+        ...allowed,
+      ].join(", ")}.`,
+    );
+  }
+  return new Set(requested);
 }
 const personalities = [
   "patient",
@@ -330,20 +385,68 @@ function characterTraits(style?: string, options: CharacterOptions = {}) {
 }
 
 export function generateRandomOC(options: CharacterOptions = {}) {
+  const omitted = parseOmittedProperties(options.omit, false);
   const traits = characterTraits(undefined, options);
+  const fields = [
+    {
+      properties: ["name"],
+      name: "Name",
+      value: traits.name,
+    },
+    {
+      properties: ["gender"],
+      name: "Gender",
+      value: traits.gender,
+    },
+    {
+      properties: ["species"],
+      name: "Species",
+      value: traits.species,
+    },
+    {
+      properties: ["sexuality"],
+      name: "Sexuality",
+      value: traits.sexuality,
+    },
+    {
+      properties: ["hair_color", "hair_length"],
+      name: "Hair",
+      value: [
+        !omitted.has("hair_color") ? `Color: ${traits.hairColor}` : null,
+        !omitted.has("hair_length") ? `Length: ${traits.hairLength}` : null,
+      ]
+        .filter((value) => value !== null)
+        .join("\n"),
+    },
+    {
+      properties: ["eye_color", "heterochromia"],
+      name: "Eyes",
+      value: [
+        !omitted.has("eye_color") ? `Color: ${traits.eyeColor}` : null,
+        !omitted.has("heterochromia")
+          ? `Heterochromia: ${traits.heterochromia}`
+          : null,
+      ]
+        .filter((value) => value !== null)
+        .join("\n"),
+    },
+    {
+      properties: ["life_status"],
+      name: "Life status",
+      value: traits.lifeStatus,
+    },
+  ];
   return new EmbedBuilder()
     .setTitle("Random OC Generator")
     .setDescription("Here is your random OC!")
     .addFields(
-      { name: "Name", value: traits.name },
-      { name: "Gender", value: traits.gender },
-      { name: "Species", value: traits.species },
-      { name: "Sexuality", value: traits.sexuality },
-      { name: "Hair color", value: traits.hairColor },
-      { name: "Hair length", value: traits.hairLength },
-      { name: "Eye color", value: traits.eyeColor },
-      { name: "Heterochromia", value: traits.heterochromia },
-      { name: "Life status", value: traits.lifeStatus },
+      fields
+        .filter(
+          (field) =>
+            field.value &&
+            field.properties.some((property) => !omitted.has(property)),
+        )
+        .map(({ name, value }) => ({ name, value })),
     );
 }
 
@@ -354,18 +457,41 @@ export function generateOC(
 ) {
   const style = choose(nameStyles, styleValue);
   const section = sectionValue ? choose(ocSections, sectionValue) : "full";
+  const omitted = parseOmittedProperties(options.omit, true);
   const traits = characterTraits(style, options);
   const fields = [
-    { name: "Name", value: traits.name, section: "all" },
     {
+      properties: ["name"],
+      name: "Name",
+      value: traits.name,
+      section: "all",
+    },
+    {
+      properties: ["personality"],
       name: "Personality",
       value: sample(personalities, 2).join(", "),
       section: "personality",
     },
-    { name: "Flaw", value: pick(flaws), section: "personality" },
-    { name: "Phobia", value: pick(phobias), section: "personality" },
-    { name: "Aesthetic", value: pick(aesthetics), section: "appearance" },
     {
+      properties: ["flaw"],
+      name: "Flaw",
+      value: pick(flaws),
+      section: "personality",
+    },
+    {
+      properties: ["phobia"],
+      name: "Phobia",
+      value: pick(phobias),
+      section: "personality",
+    },
+    {
+      properties: ["aesthetic"],
+      name: "Aesthetic",
+      value: pick(aesthetics),
+      section: "appearance",
+    },
+    {
+      properties: ["power_role"],
       name: "Power / role",
       value:
         style === "modern"
@@ -373,44 +499,76 @@ export function generateOC(
           : `${pick(roles)}. Gift: ${pick(powers)}.`,
       section: "background",
     },
-    { name: "Secret", value: pick(secrets), section: "background" },
-    { name: "Gender", value: traits.gender, section: "appearance" },
-    { name: "Species", value: traits.species, section: "appearance" },
-    { name: "Sexuality", value: traits.sexuality, section: "background" },
     {
-      name: "Hair color",
-      value: traits.hairColor,
+      properties: ["secret"],
+      name: "Secret",
+      value: pick(secrets),
+      section: "background",
+    },
+    {
+      properties: ["gender"],
+      name: "Gender",
+      value: traits.gender,
       section: "appearance",
     },
     {
-      name: "Hair length",
-      value: traits.hairLength,
+      properties: ["species"],
+      name: "Species",
+      value: traits.species,
       section: "appearance",
     },
     {
-      name: "Eye color",
-      value: traits.eyeColor,
+      properties: ["sexuality"],
+      name: "Sexuality",
+      value: traits.sexuality,
+      section: "background",
+    },
+    {
+      properties: ["hair_color", "hair_length"],
+      name: "Hair",
+      value: [
+        !omitted.has("hair_color") ? `Color: ${traits.hairColor}` : null,
+        !omitted.has("hair_length") ? `Length: ${traits.hairLength}` : null,
+      ]
+        .filter((value) => value !== null)
+        .join("\n"),
       section: "appearance",
     },
     {
-      name: "Heterochromia",
-      value: traits.heterochromia,
+      properties: ["eye_color", "heterochromia"],
+      name: "Eyes",
+      value: [
+        !omitted.has("eye_color") ? `Color: ${traits.eyeColor}` : null,
+        !omitted.has("heterochromia")
+          ? `Heterochromia: ${traits.heterochromia}`
+          : null,
+      ]
+        .filter((value) => value !== null)
+        .join("\n"),
       section: "appearance",
     },
-    { name: "Life status", value: traits.lifeStatus, section: "background" },
+    {
+      properties: ["life_status"],
+      name: "Life status",
+      value: traits.lifeStatus,
+      section: "background",
+    },
   ];
+  const title = `${omitted.has("name") ? "" : `${traits.name} | `}${style} | ${
+    section === "full" ? "Full sheet" : section
+  }`;
   return new EmbedBuilder()
     .setTitle("Original character sheet")
-    .setDescription(
-      `${traits.name} | ${style} | ${section === "full" ? "Full sheet" : section}`,
-    )
+    .setDescription(title)
     .addFields(
       fields
         .filter(
           (field) =>
-            section === "full" ||
-            field.section === "all" ||
-            field.section === section,
+            field.value &&
+            field.properties.some((property) => !omitted.has(property)) &&
+            (section === "full" ||
+              field.section === "all" ||
+              field.section === section),
         )
         .map(({ name, value }) => ({ name, value })),
     );

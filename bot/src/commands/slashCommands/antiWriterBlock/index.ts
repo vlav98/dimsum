@@ -1,20 +1,14 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { generatedCommand } from "../../generatedCommand";
 import { RandomOCGenerator } from "./ocGenerator/randomOCGenerator";
-import {
-  addCharacterOptions,
-  getCharacterOptions,
-} from "./ocGenerator/options";
 import { fanficPrompt, randomPrompt } from "./randomPrompt";
 import { twoCharPrompt } from "./twoCharPrompt";
 import {
   generateNames,
-  generateOC,
   generatePrompt,
   keywords,
   moods,
   nameStyles,
-  ocSections,
   pick,
   sample,
   tropes,
@@ -51,35 +45,6 @@ export const prompt = generatedCommand(
       mood: interaction.options.getString("mood"),
       trope: interaction.options.getString("trope"),
     }),
-);
-
-export const oc = generatedCommand(
-  addCharacterOptions(
-    new SlashCommandBuilder()
-      .setName("oc")
-      .setDescription(
-        "Generate a character sheet; leave properties blank to randomize them",
-      ),
-  )
-    .addStringOption((option) =>
-      option
-        .setName("section")
-        .setDescription("Generate the full sheet or one part")
-        .addChoices(...ocSections.map((value) => ({ name: value, value }))),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("style")
-        .setDescription("Character name and setting style")
-        .addChoices(...nameStyles.map((value) => ({ name: value, value }))),
-    ),
-  "oc",
-  (interaction) =>
-    generateOC(
-      interaction.options.getString("style"),
-      interaction.options.getString("section"),
-      getCharacterOptions(interaction),
-    ),
 );
 
 export const tag = generatedCommand(
@@ -150,7 +115,6 @@ export const name = generatedCommand(
 
 export const antiWriterBlockCommands = [
   prompt,
-  oc,
   tag,
   twist,
   name,

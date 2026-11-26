@@ -87,6 +87,7 @@ export const adopt: Command = {
 
 export async function autocompleteSavedOC(
   interaction: AutocompleteInteraction,
+  valuePrefix = "",
 ): Promise<void> {
   try {
     const focused = interaction.options.getFocused().toLocaleLowerCase();
@@ -100,7 +101,7 @@ export async function autocompleteSavedOC(
             0,
             100,
           ),
-          value: savedOC.id,
+          value: `${valuePrefix}${savedOC.id}`,
           searchText: `${label}\n${savedOC.content}`.toLocaleLowerCase(),
         };
       })

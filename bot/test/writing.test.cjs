@@ -84,8 +84,8 @@ test("story filters affect scenarios and OC sections keep the requested traits",
     "Aesthetic",
     "Power / role",
     "Secret",
-    "Eye color",
-    "Hair color",
+    "Eyes",
+    "Hair",
   ]) {
     assert.ok(full.fields.some((entry) => entry.name === field));
   }
@@ -107,9 +107,23 @@ test("story filters affect scenarios and OC sections keep the requested traits",
   assert.equal(customizedFields.Name, "Mira");
   assert.equal(customizedFields.Gender, "non-binary");
   assert.equal(customizedFields.Sexuality, "pansexual");
-  assert.equal(customizedFields["Eye color"], "blue and green");
-  assert.equal(customizedFields["Heterochromia"], "Custom");
+  assert.equal(
+    customizedFields["Eyes"],
+    "Color: blue and green\nHeterochromia: Custom",
+  );
   assert.equal(customizedFields["Life status"], "undead");
+  const withoutName = generateOC("modern", "full", {
+    name: "Hidden Name",
+    omit: "name, personality",
+  }).toJSON();
+  assert.doesNotMatch(withoutName.description, /Hidden Name/);
+  assert.ok(!withoutName.fields.some((field) => field.name === "Name"));
+  assert.ok(!withoutName.fields.some((field) => field.name === "Personality"));
+  assert.ok(withoutName.fields.some((field) => field.name === "Gender"));
+  assert.match(
+    withoutName.fields.find((field) => field.name === "Hair").value,
+    /Color: [^\n]+\nLength:/,
+  );
   const names = generateNames("modern", 5);
   assert.equal(new Set(names).size, 5);
   const nicknames = generateNames("poetic", 5, true);
@@ -119,7 +133,7 @@ test("story filters affect scenarios and OC sections keep the requested traits",
 test("new generators return saveable results and themed help fits Discord limits", async () => {
   for (const [command, options, kind] of [
     ["prompt", { universe: "fantasy" }, "prompt"],
-    ["oc", { section: "background" }, "oc"],
+    ["ocgen", { section: "background" }, "oc"],
     ["tag", { count: 5 }, "tag"],
     ["twist", {}, "twist"],
     ["name", { style: "mysterious", count: 5, nickname: true }, "name"],
@@ -161,6 +175,15 @@ test("new generators return saveable results and themed help fits Discord limits
     new Set(commands.map((command) => command.name)).size,
     commands.length,
   );
+  for (const name of ["oc-duel", "matchup"]) {
+    const options = commands.find((command) => command.name === name).options;
+    for (const optionName of ["first", "second"]) {
+      assert.equal(
+        options.find((option) => option.name === optionName).autocomplete,
+        true,
+      );
+    }
+  }
   assert.equal(
     CommandGroups.flatMap((group) => group.commands).length,
     CommandList.length,
@@ -274,6 +297,7 @@ test("version-two data migrates and concurrent adoption claims remain exclusive 
     await onInteraction({
       customId: "save-generated-prompt:tag",
       isAutocomplete: () => false,
+      isStringSelectMenu: () => false,
       isButton: () => true,
       message: { id: "tag-message", embeds: [tag.embeds[0].toJSON()] },
       guildId: "guild",
@@ -309,6 +333,7 @@ test("adoption button routing saves the offered sheet and disables further publi
     const click = {
       customId: "adopt-oc:offer-message",
       isAutocomplete: () => false,
+      isStringSelectMenu: () => false,
       isButton: () => true,
       guildId: "guild",
       user: { id: "claimant", username: "claimant", globalName: null },
@@ -373,6 +398,21 @@ test("saved OC autocomplete only offers the caller's OCs and adoption copies the
       ["owner:saved-oc"],
     );
 
+    let duelChoices;
+    await onInteraction({
+      isAutocomplete: () => true,
+      commandName: "oc-duel",
+      options: { getFocused: () => "aurora" },
+      user: { id: "owner" },
+      respond: async (value) => {
+        duelChoices = value;
+      },
+    });
+    assert.deepEqual(
+      duelChoices.map(({ value }) => value),
+      ["saved-oc:owner:saved-oc"],
+    );
+
     const inaccessible = await invoke(
       "adopt",
       { saved_oc: "owner:saved-oc" },
@@ -383,6 +423,33 @@ test("saved OC autocomplete only offers the caller's OCs and adoption copies the
       },
     );
     assert.match(inaccessible, /could not be found in your library/);
+
+    const inaccessibleDuel = await invoke(
+      "oc-duel",
+      { first: "saved-oc:someone-else:private-oc" },
+      {
+        user: { id: "owner", username: "owner", globalName: "Owner" },
+      },
+    );
+    assert.match(inaccessibleDuel, /could not be found in your library/);
+
+    const duel = await invoke(
+      "oc-duel",
+      {
+        first: "saved-oc:owner:saved-oc",
+        second: "A rival with a paper map",
+        situation: "debate",
+      },
+      {
+        user: { id: "owner", username: "owner", globalName: "Owner" },
+      },
+    );
+    const duelFields = Object.fromEntries(
+      duel.embeds[0].toJSON().fields.map(({ name, value }) => [name, value]),
+    );
+    assert.match(duelFields["First OC"], /Aurora/);
+    assert.match(duelFields["First OC"], /Gender: non-binary/);
+    assert.equal(duelFields["Second OC"], "A rival with a paper map");
 
     const response = await invoke(
       "adopt",
@@ -404,6 +471,7 @@ test("saved OC autocomplete only offers the caller's OCs and adoption copies the
     await onInteraction({
       customId: "adopt-oc:saved-oc-offer",
       isAutocomplete: () => false,
+      isStringSelectMenu: () => false,
       isButton: () => true,
       guildId: "guild",
       user: { id: "adopter", username: "adopter", globalName: "Adopter" },

@@ -46,7 +46,7 @@ Use `/help` to browse the themed command catalog. Existing commands such as
 
 | Theme | Commands |
 | --- | --- |
-| Anti-writer block | `/prompt`, `/oc`, `/tag`, `/twist`, `/name` |
+| Anti-writer block | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name` |
 | Productivity and sharing | `/challenge`, `/daily`, `/group-prompt` |
 | Server games | `/oc-duel` (alias `/matchup`), `/roulette` |
 | Personal creations | `/adopt`, `/savedprompts` |
@@ -60,11 +60,14 @@ writing channel** in the dashboard. The bot needs View Channel, Send Messages,
 and Embed Links there. See [the command reference](bot/README.md#writing-tools)
 for options and examples.
 
-Both `/oc` and `/ocgen` accept optional name, gender, sexuality, species,
-hair/eye color, hair length, life status, and heterochromia overrides; omitted
-properties are randomized. `/adopt saved_oc:<your character>` lets you offer
-one of your saved OCs to the server. Adoption creates a separate copy for the
-claimant and leaves your saved original untouched.
+`/ocgen` accepts optional name, gender, sexuality, species, hair/eye color,
+hair length, life status, and heterochromia overrides; blank properties are
+randomized. Leave `style` and `section` blank for a quick random OC, or set
+either to generate a styled character sheet. Set `omit:true` to open the
+private multi-select panel and choose properties to leave out before
+generating. `/adopt saved_oc:<your character>` lets you offer one of your saved
+OCs to the server. Adoption creates a separate copy for the claimant and
+leaves your saved original untouched.
 
 ## Start the live dashboard
 

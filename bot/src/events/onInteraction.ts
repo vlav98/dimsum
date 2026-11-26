@@ -5,18 +5,39 @@ import { handleSavedPromptsButton } from "../commands/slashCommands/personalCrea
 import { savedPromptKinds } from "../storage";
 import { adoptOC } from "../adoptions";
 import { autocompleteSavedOC } from "../commands/slashCommands/personalCreations/adopt";
+import {
+  generateSelectedOC,
+  updateOCOmissions,
+} from "../commands/slashCommands/antiWriterBlock/ocGenerator/selection";
 
 export const onInteraction = async (interaction: Interaction) => {
   if (interaction.isAutocomplete()) {
     if (interaction.commandName === "adopt") {
       await autocompleteSavedOC(interaction);
+    } else if (
+      interaction.commandName === "oc-duel" ||
+      interaction.commandName === "matchup"
+    ) {
+      await autocompleteSavedOC(interaction, "saved-oc:");
     } else {
       await interaction.respond([]);
     }
     return;
   }
 
+  if (
+    interaction.isStringSelectMenu() &&
+    interaction.customId.startsWith("oc-omit:")
+  ) {
+    await updateOCOmissions(interaction);
+    return;
+  }
+
   if (interaction.isButton()) {
+    if (interaction.customId.startsWith("oc-generate:")) {
+      await generateSelectedOC(interaction);
+      return;
+    }
     if (interaction.customId.startsWith("adopt-oc:")) {
       await adoptOC(
         interaction,
