@@ -13,6 +13,7 @@ a.server-tile:hover { border-color: var(--accent); box-shadow: 0 6px 22px var(--
 .presence-pill.present { background: var(--celadon); color: var(--success); }
 .presence-pill.absent { background: var(--lemon-chiffon); color: var(--muted); }
 .server-tile-action { width: 100%; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border); color: var(--accent); font-size: 12px; font-weight: 600; }
+.server-tile-action svg { margin-left: 4px; vertical-align: middle; }
 
 @media (prefers-reduced-motion: reduce) {
   .server-tile { transition: none; }

@@ -1,3 +1,4 @@
+import { ArrowRight } from 'iconoir-react';
 import type { Guild } from '../../../../lib/api';
 import ContentCard from '../../../../components/common/ContentCard/ContentCard';
 import './ServerList.css';
@@ -43,7 +44,14 @@ export default function ServerList({ guilds }: { guilds: Guild[] }) {
                     {entry.botPresent
                       ? 'Manage server'
                       : 'Add DimSum to enable settings'}
-                    {entry.botPresent && <span aria-hidden="true"> →</span>}
+                    {entry.botPresent && (
+                      <ArrowRight
+                        width={16}
+                        height={16}
+                        aria-hidden="true"
+                        focusable="false"
+                      />
+                    )}
                   </span>
                 </span>
               </>

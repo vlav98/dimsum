@@ -1,3 +1,4 @@
+import { Book, Community, HomeSimple } from 'iconoir-react';
 import type { Guild } from '../../../lib/api';
 import ServerNavigation from '../ServerNavigation/ServerNavigation';
 
@@ -18,9 +19,11 @@ export default function AppSidebar({
           href="#/"
           aria-current={route === '#/' || route === '#' ? 'page' : undefined}
         >
-          <span className="nav-icon" aria-hidden="true">
-            ◫
-          </span>{' '}
+          <HomeSimple
+            className="nav-icon"
+            aria-hidden="true"
+            focusable="false"
+          />
           Overview
         </a>
         <a
@@ -29,9 +32,11 @@ export default function AppSidebar({
             route === '#/servers' || serverPage ? 'page' : undefined
           }
         >
-          <span className="nav-icon" aria-hidden="true">
-            ▦
-          </span>{' '}
+          <Community
+            className="nav-icon"
+            aria-hidden="true"
+            focusable="false"
+          />
           My servers
         </a>
       </nav>
@@ -41,9 +46,7 @@ export default function AppSidebar({
           href="#/saved"
           aria-current={route === '#/saved' ? 'page' : undefined}
         >
-          <span className="nav-icon" aria-hidden="true">
-            ▤
-          </span>{' '}
+          <Book className="nav-icon" aria-hidden="true" focusable="false" />
           My saved prompts
         </a>
       </nav>

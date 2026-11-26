@@ -1,3 +1,4 @@
+import { NavArrowDown } from 'iconoir-react';
 import ChannelOptions from './components/ChannelOptions/ChannelOptions';
 import type { ChannelComboboxProps } from './types';
 import { useChannelCombobox } from './useChannelCombobox';
@@ -50,9 +51,11 @@ export default function ChannelCombobox(props: ChannelComboboxProps) {
           }}
           onKeyDown={model.onKeyDown}
         />
-        <span className="channel-combobox-arrow" aria-hidden="true">
-          ▾
-        </span>
+        <NavArrowDown
+          className="channel-combobox-arrow"
+          aria-hidden="true"
+          focusable="false"
+        />
         {model.open && (
           <ChannelOptions id={id} label={label} value={value} model={model} />
         )}

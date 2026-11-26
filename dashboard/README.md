@@ -102,6 +102,9 @@ The light theme uses peach and mint surfaces, pink and teal primary accents,
 and pastel highlights with dark text. Change the tokens there rather than
 adding hardcoded colors to individual component styles.
 
+UI icons use `iconoir-react`. Import icons by name and keep decorative icons
+hidden from assistive technology; icon-only buttons still need an accessible label.
+
 Every dashboard `.tsx` file, including tests, is limited to **100 lines**.
 Extract coherent subcomponents or hooks rather than compressing formatting.
 `npm run lint` from the repository root enforces the limit alongside bot

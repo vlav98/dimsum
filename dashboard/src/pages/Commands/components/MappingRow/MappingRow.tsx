@@ -1,3 +1,4 @@
+import { Xmark } from 'iconoir-react';
 import type { Details, Mapping } from '../../types';
 import type { ReactionRoleEditor } from '../../hooks/useReactionRoleEditor';
 import EmojiInput from '../EmojiInput/EmojiInput';
@@ -48,7 +49,7 @@ export default function MappingRow({
           aria-label={`Remove mapping ${index + 1}`}
           onClick={() => editor.removeMapping(index)}
         >
-          ×
+          <Xmark width={18} height={18} aria-hidden="true" focusable="false" />
         </button>
       )}
     </div>

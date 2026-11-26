@@ -53,7 +53,7 @@ h3 { font-size: 17px; }
 .sidebar-nav a { display: flex; min-height: 44px; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid transparent; border-radius: 6px; color: var(--text); font-size: 13px; font-weight: 600; text-decoration: none; }
 .sidebar-nav a:hover { background: var(--powder-petal); color: var(--text); }
 .sidebar-nav a[aria-current="page"] { border-color: var(--accent); background: var(--pink); color: var(--text); }
-.nav-icon { display: inline-flex; width: 20px; justify-content: center; font-size: 19px; }
+.nav-icon { width: 20px; height: 20px; flex-shrink: 0; }
 .sidebar-server { margin: 0 12px 12px; overflow-wrap: anywhere; font-size: 13px; font-weight: 700; }
 .sidebar-note { margin: auto 12px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
 .dashboard-content { width: 100%; max-width: 1320px; min-width: 0; margin: 0 auto; padding: 36px clamp(20px, 4vw, 52px) 48px; }
@@ -104,7 +104,7 @@ fieldset.reaction-form { display: grid; min-width: 0; gap: 10px; margin: 0; padd
 .message-textarea { min-height: 110px; resize: vertical; }
 .mapping-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
 .mapping-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(95px, 1fr) 24px; align-items: start; gap: 8px; }
-.remove-mapping { width: 24px; min-height: 42px; border: 0; background: transparent; color: var(--danger); font-size: 22px; }
+.remove-mapping { display: grid; width: 24px; min-height: 42px; place-items: center; padding: 0; border: 0; background: transparent; color: var(--danger); }
 .form-submit { margin: 10px 0 0; }
 .configured-messages { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
 .configured-list, .saved-prompt-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
