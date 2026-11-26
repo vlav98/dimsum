@@ -67,6 +67,9 @@ the bot API serves the built `dashboard/dist` files. API sessions persist in
 ```text
 src/
   app/                          App shell, routing, and integration tests
+    components/                 Header, sidebar, and route content
+    hooks/                      Authentication/data loading and hash routing
+    tests/                      Integration tests grouped by feature
   components/common/
     ChannelCombobox/            Shared searchable channel selector
   lib/                          API client
@@ -82,7 +85,7 @@ src/
     Servers/
       components/ServerList/
   styles/                       Global base styles
-  test/                         Shared test setup
+  test/                         Shared test setup and dashboard API fixtures
   types/                        Shared dashboard types
 ```
 
@@ -90,3 +93,11 @@ Give each component its own named folder. Place reusable components under
 `components/common/<ComponentName>/` and page-specific ones under
 `pages/<PageName>/components/<ComponentName>/`. Keep component-specific styles
 and unit tests alongside the component; app-wide styles stay in `app/App.css`.
+Keep stateful page logic in that page's `hooks/` folder and reusable UI in
+`components/common/`. Shared components include feedback, loading/retry states,
+tabs, setting forms, command lists, and the channel combobox.
+
+Every dashboard `.tsx` file, including tests, is limited to **100 lines**.
+Extract coherent subcomponents or hooks rather than compressing formatting.
+`npm run lint` from the repository root enforces the limit alongside bot
+linting; `npm run lint --workspace=dashboard` checks just the dashboard.

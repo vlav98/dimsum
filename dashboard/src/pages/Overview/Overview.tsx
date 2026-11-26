@@ -1,4 +1,5 @@
 import type { DashboardData, User } from '../../types/dashboard';
+import CommandList from '../../components/common/CommandList/CommandList';
 
 function formatUptime(uptimeMs: number | null) {
   if (uptimeMs === null) return 'Unavailable';
@@ -80,18 +81,11 @@ export default function Overview({
         {categories.map((category) => (
           <div key={category} className="command-group">
             <h3>{category}</h3>
-            <ul className="command-list">
-              {dashboard.commands
-                .filter(
-                  (command) => (command.category ?? 'Utilities') === category,
-                )
-                .map((command) => (
-                  <li className="command-item" key={command.name}>
-                    <code>/{command.name}</code>
-                    <span>{command.description}</span>
-                  </li>
-                ))}
-            </ul>
+            <CommandList
+              commands={dashboard.commands.filter(
+                (command) => (command.category ?? 'Utilities') === category,
+              )}
+            />
           </div>
         ))}
       </section>

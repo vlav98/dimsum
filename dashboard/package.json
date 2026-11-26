@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "vite",
+    "lint": "node scripts/check-tsx-lines.mjs",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "type": "tsc --noEmit"

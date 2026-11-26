@@ -8,7 +8,7 @@
     "start": "npm run start --workspace=bot",
     "dev": "npm run dev --workspace=bot",
     "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspace=bot",
+    "lint": "npm run lint --workspaces --if-present",
     "type": "npm run type --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },
