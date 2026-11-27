@@ -22,6 +22,7 @@
     "dotenv": "^18.0.10",
     "express": "^5.3.0",
     "express-session": "^1.19.0",
+    "pngjs": "^7.0.0",
     "session-file-store": "^1.5.0",
     "tslib": "^2.9.1"
   },
@@ -32,6 +33,7 @@
     "@types/session-file-store": "^1.2.6",
     "@types/luxon": "3.1.0",
     "@types/node": "^24.0.0",
+    "@types/pngjs": "^6.0.5",
     "@types/node-schedule": "2.1.0",
     "@types/remove-markdown": "0.3.1",
     "@typescript-eslint/eslint-plugin": "^8.74.0",

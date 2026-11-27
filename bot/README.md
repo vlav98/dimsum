@@ -100,6 +100,7 @@ button and their own type filters in `/savedprompts` and the dashboard.
 | `/group-prompt` | Posts one shared scenario in the server's manager-configured writing channel. |
 | `/roulette` | Mixes a trope, location, object, and absurd constraint. |
 | `/pose` | Shows a random pose reference photo from Unsplash, with photographer credit. Requires `UNSPLASH_ACCESS_KEY` from [Unsplash](https://unsplash.com/developers). Uses Unsplash's strict content filter, which cannot guarantee non-nude or AI-free results. |
+| `/palette` | Generates a color-harmony palette with swatches and hex codes. Optional `count` from 2–8; omitted counts are random. No external service is needed. |
 
 Examples:
 
@@ -108,6 +109,7 @@ Examples:
 /ocgen style:modern section:personality
 /ocgen omit:true
 /name style:mysterious count:3 nickname:true
+/palette count:8
 /oc-duel first:Aster, a stubborn gardener second:Vale, a shy archivist situation:debate
 ```
 
@@ -151,7 +153,7 @@ All slash commands live in camelCase theme folders under
 
 | Folder | Commands |
 | --- | --- |
-| `antiWriterBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose` |
+| `antiArtBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose`, `/palette` |
 | `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt` |
 | `serverGames/` | `/oc-duel`, `/matchup`, `/roulette` |
 | `personalCreations/` | `/adopt`, `/savedprompts` |
