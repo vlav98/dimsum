@@ -7,6 +7,7 @@ import { onMessageCommand } from "./events/onMessageCommand";
 import { startDashboardServer } from "./dashboard/server";
 import { applyReactionRole } from "./features/reactionRoles/reactionRoles";
 import { startDailyPosts } from "./features/community/dailyPosts";
+import { startArtChallenges } from "./features/community/artChallenges";
 
 (async () => {
   if (!process.env.DISCORD_TOKEN) {
@@ -57,6 +58,7 @@ import { startDailyPosts } from "./features/community/dailyPosts";
 
   await client.login(process.env.DISCORD_TOKEN);
   startDailyPosts(client);
+  startArtChallenges(client);
   await startDashboardServer(client);
 })();
 

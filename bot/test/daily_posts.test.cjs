@@ -108,7 +108,7 @@ test("daily posts migrate storage, respect schedules, and persist the last poste
     const stored = JSON.parse(
       await readFile(path.join(directory, "dashboard-data.json"), "utf8"),
     );
-    assert.equal(stored.version, 4);
+    assert.equal(stored.version, 5);
     assert.equal(stored.guildPrefixes.guild, "??");
     assert.equal(stored.guildWritingChannels.guild, "channel");
     assert.equal(stored.guildDailyPosts.guild.lastPostedDate, "2026-11-30");

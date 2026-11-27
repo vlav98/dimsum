@@ -5,6 +5,7 @@ import { fanficPrompt, randomPrompt } from "./randomPrompt";
 import { twoCharPrompt } from "./twoCharPrompt";
 import { pose } from "./pose";
 import { palette } from "./palette";
+import { ocArtVibe } from "./ocArtVibe";
 import {
   moods,
   nameStyles,
@@ -127,4 +128,5 @@ export const antiWriterBlockCommands = [
   RandomOCGenerator,
   pose,
   palette,
+  ocArtVibe,
 ];

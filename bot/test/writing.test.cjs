@@ -281,7 +281,7 @@ test("version-two data migrates and concurrent adoption claims remain exclusive 
       await readFile(path.join(directory, "dashboard-data.json"), "utf8"),
     );
     assert.equal(stored.adoptionOffers[0].claimedBy, "first");
-    assert.equal(stored.version, 4);
+    assert.equal(stored.version, 5);
 
     const response = await invoke("savedprompts", { kind: "tag" });
     assert.ok(response.components.length <= 5);

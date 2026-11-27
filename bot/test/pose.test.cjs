@@ -48,9 +48,9 @@ test("/pose displays an Unsplash photo and handles unavailable results", async (
   global.fetch = async (url, options) => {
     assert.equal(
       url.href,
-      "https://api.unsplash.com/photos/random?query=person+pose&content_filter=high",
+      "https://api.unsplash.com/photos/random?query=pose&content_filter=high",
     );
-    assert.equal(url.searchParams.get("query"), "person pose");
+    assert.equal(url.searchParams.get("query"), "pose");
     assert.equal(options.headers.Authorization, "Client-ID test-key");
     return { ok: true, json: async () => photo };
   };

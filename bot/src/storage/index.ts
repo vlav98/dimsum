@@ -55,13 +55,22 @@ export interface AdoptionOffer {
 }
 
 interface StoredData {
-  version: 4;
+  version: 5;
   guildPrefixes: Record<string, string>;
   reactionRoleMessages: ReactionRoleMessage[];
   savedPrompts: SavedPrompt[];
   guildWritingChannels: Record<string, string>;
   adoptionOffers: AdoptionOffer[];
   guildDailyPosts: Record<string, DailyPostSettings>;
+  artChallenges: ArtChallenge[];
+}
+
+export interface ArtChallenge {
+  threadId: string;
+  referenceMessageId: string;
+  hideAt: number;
+  endAt: number;
+  hidden: boolean;
 }
 
 export interface DailyPostSettings {
@@ -72,13 +81,17 @@ export interface DailyPostSettings {
   lastPostedDate: string | null;
 }
 
-type StoredDataV3 = Omit<StoredData, "version" | "guildDailyPosts"> & {
+type StoredDataV4 = Omit<StoredData, "version" | "artChallenges"> & {
+  version: 4;
+};
+
+type StoredDataV3 = Omit<StoredData, "version" | "guildDailyPosts" | "artChallenges"> & {
   version: 3;
 };
 
 type StoredDataV2 = Omit<
   StoredData,
-  "version" | "guildWritingChannels" | "adoptionOffers" | "guildDailyPosts"
+  "version" | "guildWritingChannels" | "adoptionOffers" | "guildDailyPosts" | "artChallenges"
 > & { version: 2 };
 
 interface StoredDataV1 {
@@ -89,13 +102,14 @@ interface StoredDataV1 {
 }
 
 const emptyData = (): StoredData => ({
-  version: 4,
+  version: 5,
   guildPrefixes: {},
   reactionRoleMessages: [],
   savedPrompts: [],
   guildWritingChannels: {},
   adoptionOffers: [],
   guildDailyPosts: {},
+  artChallenges: [],
 });
 
 let pendingWrite: Promise<void> = Promise.resolve();
@@ -114,9 +128,9 @@ async function readData(): Promise<StoredData> {
   try {
     const raw = await readFile(dataFilePath(), "utf8");
     const data = JSON.parse(raw) as
-      StoredData | StoredDataV1 | StoredDataV2 | StoredDataV3;
+      StoredData | StoredDataV1 | StoredDataV2 | StoredDataV3 | StoredDataV4;
     if (
-      ![1, 2, 3, 4].includes(data.version) ||
+      ![1, 2, 3, 4, 5].includes(data.version) ||
       !data.guildPrefixes ||
       typeof data.guildPrefixes !== "object" ||
       Array.isArray(data.guildPrefixes) ||
@@ -128,10 +142,11 @@ async function readData(): Promise<StoredData> {
     if (data.version === 1) {
       return {
         ...data,
-        version: 4,
+        version: 5,
         guildWritingChannels: {},
         adoptionOffers: [],
         guildDailyPosts: {},
+        artChallenges: [],
         savedPrompts: data.savedPrompts.map((prompt) => ({
           ...prompt,
           kind: "other",
@@ -141,10 +156,11 @@ async function readData(): Promise<StoredData> {
     if (data.version === 2) {
       return {
         ...data,
-        version: 4,
+        version: 5,
         guildWritingChannels: {},
         adoptionOffers: [],
         guildDailyPosts: {},
+        artChallenges: [],
       };
     }
     if (
@@ -156,12 +172,28 @@ async function readData(): Promise<StoredData> {
       throw new Error("Dashboard data file has an unsupported format.");
     }
     if (data.version === 3) {
-      return { ...data, version: 4, guildDailyPosts: {} };
+      return { ...data, version: 5, guildDailyPosts: {}, artChallenges: [] };
     }
     if (
       !data.guildDailyPosts ||
       typeof data.guildDailyPosts !== "object" ||
       Array.isArray(data.guildDailyPosts)
+    ) {
+      throw new Error("Dashboard data file has an unsupported format.");
+    }
+    if (data.version === 4) return { ...data, version: 5, artChallenges: [] };
+    if (
+      !Array.isArray(data.artChallenges) ||
+      data.artChallenges.some(
+        (challenge) =>
+          !challenge ||
+          typeof challenge.threadId !== "string" ||
+          typeof challenge.referenceMessageId !== "string" ||
+          !Number.isFinite(challenge.hideAt) ||
+          !Number.isFinite(challenge.endAt) ||
+          challenge.endAt <= challenge.hideAt ||
+          typeof challenge.hidden !== "boolean",
+      )
     ) {
       throw new Error("Dashboard data file has an unsupported format.");
     }
@@ -387,6 +419,32 @@ export function markDailyPostSent(
   return updateData((data) => {
     const settings = data.guildDailyPosts[guildId];
     if (settings) settings.lastPostedDate = date;
+  });
+}
+
+export async function listArtChallenges(): Promise<ArtChallenge[]> {
+  return (await currentData()).artChallenges;
+}
+
+export function saveArtChallenge(challenge: ArtChallenge): Promise<void> {
+  return updateData((data) => {
+    if (data.artChallenges.some((entry) => entry.threadId === challenge.threadId)) {
+      throw new Error("An art challenge already exists for this thread.");
+    }
+    data.artChallenges.push(challenge);
+  });
+}
+
+export function markArtChallengeHidden(threadId: string): Promise<void> {
+  return updateData((data) => {
+    const challenge = data.artChallenges.find((entry) => entry.threadId === threadId);
+    if (challenge) challenge.hidden = true;
+  });
+}
+
+export function removeArtChallenge(threadId: string): Promise<void> {
+  return updateData((data) => {
+    data.artChallenges = data.artChallenges.filter((entry) => entry.threadId !== threadId);
   });
 }
 

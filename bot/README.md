@@ -101,6 +101,8 @@ button and their own type filters in `/savedprompts` and the dashboard.
 | `/roulette` | Mixes a trope, location, object, and absurd constraint. |
 | `/pose` | Shows a random pose reference photo from Unsplash, with photographer credit. Requires `UNSPLASH_ACCESS_KEY` from [Unsplash](https://unsplash.com/developers). Uses Unsplash's strict content filter, which cannot guarantee non-nude or AI-free results. |
 | `/palette` | Generates a color-harmony palette with swatches and hex codes. Optional `count` from 2–8; omitted counts are random. No external service is needed. |
+| `/oc-art-vibe` | Generates an OC concept, palette swatches, and a short color-use script. |
+| `/draw-this-in-palette` | Starts a timed thread challenge with a shared palette and Unsplash pose reference. |
 
 Examples:
 
@@ -110,6 +112,7 @@ Examples:
 /ocgen omit:true
 /name style:mysterious count:3 nickname:true
 /palette count:8
+/draw-this-in-palette view_minutes:10 submit_minutes:60
 /oc-duel first:Aster, a stubborn gardener second:Vale, a shy archivist situation:debate
 ```
 
@@ -140,11 +143,29 @@ not an intellectual-property ownership system. Find the adopted sheet through
 `/savedprompts kind:oc` or the dashboard. An unclaimed offer has no ordinary
 Save button.
 
-Storage now also includes dedicated writing channels, adoption offers, and
-daily-post schedules. Existing version-1 through version-3 files migrate to
-version 4 without losing prefixes,
+Storage now also includes dedicated writing channels, adoption offers,
+daily-post schedules, and active drawing challenges. Existing version-1 through
+version-4 files migrate to version 5 without losing prefixes,
 reaction-role mappings, or saved prompts. Keep a backup of
 `bot/data/dashboard-data.json`.
+
+### Drawing challenges
+
+Run `/draw-this-in-palette` in a server text or announcement channel. The bot
+posts a palette and opens a thread with an Unsplash pose reference. Optional
+`view_minutes` and `submit_minutes` are each 1–720 minutes, defaulting to 10
+minutes of viewing and 60 minutes to submit after viewing ends. Post work in
+the thread at any time before the deadline. The bot shows Discord timestamps,
+removes the reference image when viewing ends, and announces both transitions.
+The deadline is announced, not enforced; the thread remains open.
+
+The bot needs View Channel, Send Messages, Create Public Threads, Send Messages
+in Threads, Read Message History, Embed Links, and Attach Files. The command
+requires `UNSPLASH_ACCESS_KEY`; Unsplash's strict filter does not guarantee
+non-nude or AI-free images. Removing the image from the message cannot prevent
+people from saving it or visiting the credited source. Pending deadlines
+survive restarts, but actions can be delayed while the bot is offline or lacks
+permissions; they resume when it can access the thread again.
 
 ### Command organization
 
@@ -153,8 +174,8 @@ All slash commands live in camelCase theme folders under
 
 | Folder | Commands |
 | --- | --- |
-| `antiArtBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose`, `/palette` |
-| `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt` |
+| `antiArtBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose`, `/palette`, `/oc-art-vibe` |
+| `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt`, `/draw-this-in-palette` |
 | `serverGames/` | `/oc-duel`, `/matchup`, `/roulette` |
 | `personalCreations/` | `/adopt`, `/savedprompts` |
 | `administrationAndUtilities/` | `/writing-channel`, `/reactionroles`, `/help`, `/hello`, `/react` |

@@ -11,6 +11,7 @@ import { generatePrompt, writingChallenge } from "../../../generators/writing";
 import { CommunitySetupError, writingChannel } from "../../../features/community/channels";
 import { getWritingChannel } from "../../../storage";
 import { savePromptButton } from "../../../components/common/promptButtons/promptButtons";
+import { drawThisInPalette } from "./drawThisInPalette";
 
 export const challenge = generatedCommand(
   new SlashCommandBuilder()
@@ -108,4 +109,4 @@ export const groupPrompt: Command = {
   },
 };
 
-export const productivityAndSharingCommands = [challenge, daily, groupPrompt];
+export const productivityAndSharingCommands = [challenge, daily, groupPrompt, drawThisInPalette];

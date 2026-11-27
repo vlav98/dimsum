@@ -62,8 +62,8 @@ Use `/help` to browse the themed command catalog. Existing commands such as
 
 | Theme | Commands |
 | --- | --- |
-| Anti-writer block | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name`, `/pose`, `/palette` |
-| Productivity and sharing | `/challenge`, `/daily`, `/group-prompt` |
+| Anti-writer block | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name`, `/pose`, `/palette`, `/oc-art-vibe` |
+| Productivity and sharing | `/challenge`, `/daily`, `/group-prompt`, `/draw-this-in-palette` |
 | Server games | `/oc-duel` (alias `/matchup`), `/roulette` |
 | Personal creations | `/adopt`, `/savedprompts` |
 
@@ -75,6 +75,10 @@ daily posts in the dashboard.
 Its strict content filter cannot guarantee non-nude or AI-free results.
 `/palette` generates a color-harmony palette locally; set `count` from 2 to 8
 or leave it blank for a random size.
+`/oc-art-vibe` combines an OC concept with a palette and color-use suggestions.
+`/draw-this-in-palette` starts a shared timed drawing challenge in a thread;
+see the [command reference](bot/README.md#drawing-challenges) for timing,
+permissions, and reference-image limitations.
 `/adopt` creates a first-claim-wins OC offer and saves the claimed sheet in its
 owner's library. `/group-prompt` needs a dedicated channel set by a manager
 with `/writing-channel channel:#writing` or **Commands → Productivity & sharing

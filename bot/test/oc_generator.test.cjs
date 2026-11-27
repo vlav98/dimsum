@@ -6,7 +6,7 @@ require("tsconfig-paths/register");
 
 const {
   RandomOCGenerator,
-} = require("../src/commands/slashCommands/antiWriterBlock/ocGenerator/randomOCGenerator");
+} = require("../src/commands/slashCommands/antiArtBlock/ocGenerator/randomOCGenerator");
 const { Heterochromia } = require("../src/types/character/eyeColors");
 const {
   randomizeEyeColor,
@@ -18,7 +18,7 @@ const { generateRandomOC } = require("../src/generators/writing");
 const {
   fanficPrompt,
   randomPrompt,
-} = require("../src/commands/slashCommands/antiWriterBlock/randomPrompt");
+} = require("../src/commands/slashCommands/antiArtBlock/randomPrompt");
 const { CommandList } = require("../src/commands");
 const { onInteraction } = require("../src/events/onInteraction");
 
