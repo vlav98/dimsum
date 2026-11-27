@@ -62,7 +62,7 @@ Use `/help` to browse the themed command catalog. Existing commands such as
 
 | Theme | Commands |
 | --- | --- |
-| Anti-writer block | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name` |
+| Anti-writer block | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name`, `/pose` |
 | Productivity and sharing | `/challenge`, `/daily`, `/group-prompt` |
 | Server games | `/oc-duel` (alias `/matchup`), `/roulette` |
 | Personal creations | `/adopt`, `/savedprompts` |
@@ -70,6 +70,9 @@ Use `/help` to browse the themed command catalog. Existing commands such as
 Generators use curated local lists, with no external AI or AO3 connection.
 `/daily` is shared for the UTC day. Managers can separately enable automatic
 daily posts in the dashboard.
+`/pose` retrieves a random drawing reference from Unsplash and requires an
+`UNSPLASH_ACCESS_KEY` in `bot/.env`; get one from [Unsplash](https://unsplash.com/developers).
+Its strict content filter cannot guarantee non-nude or AI-free results.
 `/adopt` creates a first-claim-wins OC offer and saves the claimed sheet in its
 owner's library. `/group-prompt` needs a dedicated channel set by a manager
 with `/writing-channel channel:#writing` or **Commands → Productivity & sharing

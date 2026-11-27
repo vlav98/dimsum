@@ -6,6 +6,7 @@ Install dependencies from the repository root with `npm install`. Copy
 - `DISCORD_TOKEN`: the bot token from the Discord Developer Portal
 - `GUILD_ID`: the development server ID used for guild command registration
 - `PREFIX`: optional message-command prefix; defaults to `!`
+- `UNSPLASH_ACCESS_KEY`: optional Unsplash access key for `/pose`
 - `APP_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, and
   `SESSION_SECRET`: required to enable the optional Discord dashboard
 - `DASHBOARD_PORT` and `DASHBOARD_ORIGIN`: optional dashboard settings
@@ -98,6 +99,7 @@ button and their own type filters in `/savedprompts` and the dashboard.
 | `/adopt` | Offers a full OC in a server, optionally choosing its `style` or one of your saved OCs with `saved_oc`. The first member to click **Adopt this OC** permanently claims it. |
 | `/group-prompt` | Posts one shared scenario in the server's manager-configured writing channel. |
 | `/roulette` | Mixes a trope, location, object, and absurd constraint. |
+| `/pose` | Shows a random pose reference photo from Unsplash, with photographer credit. Requires `UNSPLASH_ACCESS_KEY` from [Unsplash](https://unsplash.com/developers). Uses Unsplash's strict content filter, which cannot guarantee non-nude or AI-free results. |
 
 Examples:
 
@@ -149,7 +151,7 @@ All slash commands live in camelCase theme folders under
 
 | Folder | Commands |
 | --- | --- |
-| `antiWriterBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen` |
+| `antiWriterBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose` |
 | `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt` |
 | `serverGames/` | `/oc-duel`, `/matchup`, `/roulette` |
 | `personalCreations/` | `/adopt`, `/savedprompts` |

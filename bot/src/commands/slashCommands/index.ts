@@ -1,6 +1,6 @@
 import { Command } from "../../interfaces/Command";
 import { administrationAndUtilitiesCommands } from "./administrationAndUtilities";
-import { antiWriterBlockCommands } from "./antiWriterBlock";
+import { antiWriterBlockCommands } from "./antiArtBlock";
 import { personalCreationsCommands } from "./personalCreations";
 import { productivityAndSharingCommands } from "./productivityAndSharing";
 import { serverGamesCommands } from "./serverGames";

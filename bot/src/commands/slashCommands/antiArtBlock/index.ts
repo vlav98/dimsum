@@ -3,6 +3,7 @@ import { generatedCommand } from "../../generatedCommand";
 import { RandomOCGenerator } from "./ocGenerator/randomOCGenerator";
 import { fanficPrompt, randomPrompt } from "./randomPrompt";
 import { twoCharPrompt } from "./twoCharPrompt";
+import { pose } from "./pose";
 import {
   moods,
   nameStyles,
@@ -123,4 +124,5 @@ export const antiWriterBlockCommands = [
   fanficPrompt,
   twoCharPrompt,
   RandomOCGenerator,
+  pose,
 ];

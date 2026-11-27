@@ -8,7 +8,7 @@ import { autocompleteSavedOC } from "../commands/slashCommands/personalCreations
 import {
   generateSelectedOC,
   updateOCOmissions,
-} from "../commands/slashCommands/antiWriterBlock/ocGenerator/selection";
+} from "../commands/slashCommands/antiArtBlock/ocGenerator/selection";
 
 export const onInteraction = async (interaction: Interaction) => {
   if (interaction.isAutocomplete()) {
