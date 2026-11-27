@@ -4,16 +4,17 @@ import { RandomOCGenerator } from "./ocGenerator/randomOCGenerator";
 import { fanficPrompt, randomPrompt } from "./randomPrompt";
 import { twoCharPrompt } from "./twoCharPrompt";
 import {
-  generateNames,
-  generatePrompt,
-  keywords,
   moods,
   nameStyles,
+  tropes,
+  universes,
+} from "../../../config/generatorOptions";
+import { keywords, twists } from "../../../data/generators/writing";
+import {
+  generateNames,
+  generatePrompt,
   pick,
   sample,
-  tropes,
-  twists,
-  universes,
 } from "../../../generators/writing";
 
 export const prompt = generatedCommand(

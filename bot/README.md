@@ -41,7 +41,9 @@ The bot needs Read Message History to edit existing messages.
 - `src/events/`: Discord event handlers.
 - `src/features/<feature>/`: adoption, community channels and daily posts,
   reaction roles, and saved-prompt services.
-- `src/generators/`: reusable character, writing, and fanfic generation.
+- `src/generators/`: focused story, name, character, challenge, and game
+  generators; `writing.ts` is their shared public export entrypoint.
+- `src/data/`: curated prompt pools, character traits, names, and default emojis.
 - `src/components/common/<component>/`: reusable Discord message components.
 - `src/dashboard/`: Express API server and persistent session store.
 - `src/storage/`: shared file persistence and migrations.
@@ -52,6 +54,30 @@ The bot needs Read Message History to edit existing messages.
 Keep command-specific helpers with their command; put reusable generation and
 feature logic in their corresponding folders instead of importing it from a
 command's implementation.
+
+### Editing lists and generator settings
+
+| Location | Content |
+| --- | --- |
+| `src/config/generatorOptions.ts` | Universe, mood, trope, name-style, OC-section, life-status, and matchup choices |
+| `src/config/characterProperties.ts` | OC property labels, omission choices, and command-option descriptions |
+| `src/config/reactionRoles.ts` | Permissions excluded from self-assignable roles |
+| `src/data/generators/story.ts` | Story settings and mood/trope directions |
+| `src/data/generators/names.ts` | Name parts and nicknames by style |
+| `src/data/generators/character.ts` | Personalities, flaws, phobias, aesthetics, roles, powers, and secrets |
+| `src/data/generators/writing.ts` | Keywords, twists, and writing challenges |
+| `src/data/generators/games.ts` | Roulette pools and OC-matchup scenarios |
+| `src/data/generators/fanfic.ts` | Fanfic prompts, settings, genres, tropes, and additional tags |
+| `src/data/generators/otp.ts` | Two-character prompt templates |
+| `src/data/reactionEmojis.ts` | Default reaction-role emojis |
+
+These are typed TypeScript modules bundled with the bot, not runtime storage.
+Edit lists there and rebuild/restart the bot (or use the development watcher).
+Keep prompt order and intentional duplicates when preserving existing random
+weighting. The daily challenge also depends on the challenge list's order and
+length. Adding a name style or universe requires its matching data entries;
+TypeScript checks those mappings. Persistent server data stays in `bot/data/`
+or `DIMSUM_DATA_DIR`.
 
 ## Writing tools
 
@@ -142,7 +168,7 @@ Use `/randomprompt` or `/fanficprompt`, optionally providing a ship name. Both
 select a prompt, setting, genre, and trope from the bot's built-in lists, then
 add three distinct AO3-inspired additional tags. Tags matching the selected
 genre or trope are excluded to avoid repetition. The tags are curated locally
-in `src/generators/fanfic/tags.ts`; this does not
+in `src/data/generators/fanfic.ts`; this does not
 connect to or copy data live from AO3.
 
 Use the **Save prompt** button on generated prompt replies to save them in the

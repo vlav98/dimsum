@@ -7,7 +7,8 @@ import {
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { adoptionButton } from "../../../features/adoptions/adoptions";
-import { generateOC, nameStyles } from "../../../generators/writing";
+import { generateOC } from "../../../generators/writing";
+import { nameStyles } from "../../../config/generatorOptions";
 import { promptText } from "../../../features/savedPrompts/savedPrompts";
 import {
   createAdoptionOffer,

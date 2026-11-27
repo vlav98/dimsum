@@ -1,27 +1,5 @@
+import { defaultEmojis } from "../../data/reactionEmojis";
 import { Guild } from "discord.js";
-
-const defaultEmojis = [
-  ["thumbsup", "👍"],
-  ["thumbsdown", "👎"],
-  ["heart", "❤️"],
-  ["smile", "😄"],
-  ["joy", "😂"],
-  ["tada", "🎉"],
-  ["fire", "🔥"],
-  ["star", "⭐"],
-  ["white_check_mark", "✅"],
-  ["x", "❌"],
-  ["eyes", "👀"],
-  ["wave", "👋"],
-  ["sparkles", "✨"],
-  ["rainbow", "🌈"],
-  ["art", "🎨"],
-  ["book", "📖"],
-  ["video_game", "🎮"],
-  ["musical_note", "🎵"],
-  ["sunny", "☀️"],
-  ["crescent_moon", "🌙"],
-];
 
 export function listReactionEmojis(guild: Guild) {
   return [

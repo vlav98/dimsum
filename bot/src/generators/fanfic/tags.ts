@@ -1,24 +1,4 @@
-const additionalTags = [
-  "Alternate Universe - Modern",
-  "Alternate Universe - Coffee Shops",
-  "Canon Divergence",
-  "Domestic Fluff",
-  "Emotional Hurt/Comfort",
-  "Established Relationship",
-  "First Kiss",
-  "Forced Proximity",
-  "Found Family",
-  "Happy Ending",
-  "Idiots in Love",
-  "Identity Reveal",
-  "Meet-Cute",
-  "Missing Scene",
-  "Mutual Pining",
-  "Only One Bed",
-  "Protective Character",
-  "Road Trips",
-  "Time Loop",
-];
+import { additionalTags } from "../../data/generators/fanfic";
 
 export function getRandomAdditionalTags(
   excludedTags: readonly string[] = [],

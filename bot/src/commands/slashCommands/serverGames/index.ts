@@ -4,6 +4,7 @@ import { generatedCommand } from "../../generatedCommand";
 import { generateMatchup, generateRoulette } from "../../../generators/writing";
 import { savePromptButton } from "../../../components/common/promptButtons/promptButtons";
 import { getSavedPromptForUser, SavedPrompt } from "../../../storage";
+import { matchupChoices } from "../../../config/generatorOptions";
 
 const savedOCPrefix = "saved-oc:";
 
@@ -68,11 +69,7 @@ function matchupCommand(commandName: string) {
       option
         .setName("situation")
         .setDescription("Type of encounter")
-        .addChoices(
-          { name: "Absurd debate", value: "debate" },
-          { name: "Forest survival", value: "survival" },
-          { name: "Festival contest", value: "contest" },
-        ),
+        .addChoices(...matchupChoices),
     );
 
   const command: Command = {

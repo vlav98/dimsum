@@ -49,6 +49,8 @@ with component styles and tests beside it. The app shell lives in `src/app/`.
 
 The bot keeps themed commands under `bot/src/commands/`, reusable generators
 under `src/generators/`, and community services under `src/features/`.
+Curated lists live in `bot/src/data/`; generator choices and static policies
+live in `bot/src/config/`, separate from runtime storage in `bot/data/`.
 Its dashboard API and sessions live in `src/dashboard/`, persistence in
 `src/storage/`, and reusable Discord message components in `src/components/common/`.
 See the workspace READMEs for details.

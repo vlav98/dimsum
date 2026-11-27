@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Command } from "../../../../interfaces/Command";
 import { addCharacterOptions } from "./options";
 import { beginOCGeneration } from "./selection";
-import { nameStyles, ocSections } from "../../../../generators/writing";
+import { nameStyles, ocSections } from "../../../../config/generatorOptions";
 
 export const RandomOCGenerator: Command = {
   data: addCharacterOptions(

@@ -1,15 +1,5 @@
+import { characterOptions } from "../../../../config/characterProperties";
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-
-const characterOptions = [
-  ["name", "Set a name; otherwise one is generated"],
-  ["gender", "Set a gender; otherwise one is randomized"],
-  ["sexuality", "Set a sexuality; otherwise one is randomized"],
-  ["species", "Set a species; otherwise one is randomized"],
-  ["hair_color", "Set a hair color; otherwise one is randomized"],
-  ["hair_length", "Set a hair length; otherwise one is randomized"],
-  ["eye_color", "Set an eye color; otherwise one is randomized"],
-  ["life_status", "Set a life status; otherwise one is randomized"],
-] as const;
 
 export function addCharacterOptions(command: SlashCommandBuilder) {
   for (const [name, description] of characterOptions) {

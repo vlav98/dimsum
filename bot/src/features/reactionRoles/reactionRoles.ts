@@ -1,3 +1,4 @@
+import { restrictedRolePermissions } from "../../config/reactionRoles";
 import {
   ChannelType,
   Client,
@@ -17,24 +18,6 @@ import {
 import { resolveReactionEmoji } from "./emojis";
 
 export class ReactionRoleSetupError extends Error {}
-
-const restrictedRolePermissions = [
-  PermissionFlagsBits.Administrator,
-  PermissionFlagsBits.ManageGuild,
-  PermissionFlagsBits.ManageRoles,
-  PermissionFlagsBits.ManageChannels,
-  PermissionFlagsBits.ManageWebhooks,
-  PermissionFlagsBits.ManageMessages,
-  PermissionFlagsBits.ViewAuditLog,
-  PermissionFlagsBits.ManageNicknames,
-  PermissionFlagsBits.ManageGuildExpressions,
-  PermissionFlagsBits.MentionEveryone,
-  PermissionFlagsBits.KickMembers,
-  PermissionFlagsBits.BanMembers,
-  PermissionFlagsBits.ModerateMembers,
-  PermissionFlagsBits.ManageEvents,
-  PermissionFlagsBits.ManageThreads,
-];
 
 export function canBeReactionAssigned(
   role: Role,
