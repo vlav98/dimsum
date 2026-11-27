@@ -12,7 +12,7 @@ test('Overview groups commands and managers configure or disable the community w
   const user = userEvent.setup();
   render(<App />);
   expect(
-    await screen.findByRole('heading', { name: 'Anti-writer block' }),
+    await screen.findByRole('heading', { name: 'antiArtBlock' }),
   ).toBeInTheDocument();
   expect(
     screen.getByRole('heading', { name: 'Administration & utilities' }),

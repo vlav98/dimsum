@@ -6,6 +6,7 @@ import { twoCharPrompt } from "./twoCharPrompt";
 import { pose } from "./pose";
 import { palette } from "./palette";
 import { ocArtVibe } from "./ocArtVibe";
+import { drawThisInPalette } from "./drawThisInPalette";
 import {
   moods,
   nameStyles,
@@ -117,7 +118,7 @@ export const name = generatedCommand(
       ),
 );
 
-export const antiWriterBlockCommands = [
+export const antiArtBlockCommands = [
   prompt,
   tag,
   twist,
@@ -129,4 +130,5 @@ export const antiWriterBlockCommands = [
   pose,
   palette,
   ocArtVibe,
+  drawThisInPalette,
 ];

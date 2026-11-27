@@ -63,6 +63,13 @@ interface StoredData {
   adoptionOffers: AdoptionOffer[];
   guildDailyPosts: Record<string, DailyPostSettings>;
   artChallenges: ArtChallenge[];
+  artChallengeHistory?: ArtChallengeHistory[];
+}
+
+export interface ArtChallengeHistory {
+  guildId: string;
+  threadId: string;
+  endedAt: number;
 }
 
 export interface ArtChallenge {
@@ -86,13 +93,20 @@ type StoredDataV4 = Omit<StoredData, "version" | "artChallenges"> & {
   version: 4;
 };
 
-type StoredDataV3 = Omit<StoredData, "version" | "guildDailyPosts" | "artChallenges"> & {
+type StoredDataV3 = Omit<
+  StoredData,
+  "version" | "guildDailyPosts" | "artChallenges"
+> & {
   version: 3;
 };
 
 type StoredDataV2 = Omit<
   StoredData,
-  "version" | "guildWritingChannels" | "adoptionOffers" | "guildDailyPosts" | "artChallenges"
+  | "version"
+  | "guildWritingChannels"
+  | "adoptionOffers"
+  | "guildDailyPosts"
+  | "artChallenges"
 > & { version: 2 };
 
 interface StoredDataV1 {
@@ -188,7 +202,8 @@ async function readData(): Promise<StoredData> {
       data.artChallenges.some(
         (challenge) =>
           !challenge ||
-          (challenge.guildId !== undefined && typeof challenge.guildId !== "string") ||
+          (challenge.guildId !== undefined &&
+            typeof challenge.guildId !== "string") ||
           typeof challenge.threadId !== "string" ||
           typeof challenge.referenceMessageId !== "string" ||
           !Number.isFinite(challenge.hideAt) ||
@@ -196,6 +211,19 @@ async function readData(): Promise<StoredData> {
           challenge.endAt <= challenge.hideAt ||
           typeof challenge.hidden !== "boolean",
       )
+    ) {
+      throw new Error("Dashboard data file has an unsupported format.");
+    }
+    if (
+      data.artChallengeHistory !== undefined &&
+      (!Array.isArray(data.artChallengeHistory) ||
+        data.artChallengeHistory.some(
+          (entry) =>
+            !entry ||
+            typeof entry.guildId !== "string" ||
+            typeof entry.threadId !== "string" ||
+            !Number.isFinite(entry.endedAt),
+        ))
     ) {
       throw new Error("Dashboard data file has an unsupported format.");
     }
@@ -430,7 +458,9 @@ export async function listArtChallenges(): Promise<ArtChallenge[]> {
 
 export function saveArtChallenge(challenge: ArtChallenge): Promise<void> {
   return updateData((data) => {
-    if (data.artChallenges.some((entry) => entry.threadId === challenge.threadId)) {
+    if (
+      data.artChallenges.some((entry) => entry.threadId === challenge.threadId)
+    ) {
       throw new Error("An art challenge already exists for this thread.");
     }
     data.artChallenges.push(challenge);
@@ -439,14 +469,56 @@ export function saveArtChallenge(challenge: ArtChallenge): Promise<void> {
 
 export function markArtChallengeHidden(threadId: string): Promise<void> {
   return updateData((data) => {
-    const challenge = data.artChallenges.find((entry) => entry.threadId === threadId);
+    const challenge = data.artChallenges.find(
+      (entry) => entry.threadId === threadId,
+    );
     if (challenge) challenge.hidden = true;
+  });
+}
+
+export function updateArtChallengeDeadlines(
+  threadId: string,
+  hideAt: number,
+  endAt: number,
+): Promise<void> {
+  return updateData((data) => {
+    const challenge = data.artChallenges.find(
+      (entry) => entry.threadId === threadId,
+    );
+    if (!challenge) throw new Error("Challenge not found.");
+    challenge.hideAt = hideAt;
+    challenge.endAt = endAt;
   });
 }
 
 export function removeArtChallenge(threadId: string): Promise<void> {
   return updateData((data) => {
-    data.artChallenges = data.artChallenges.filter((entry) => entry.threadId !== threadId);
+    data.artChallenges = data.artChallenges.filter(
+      (entry) => entry.threadId !== threadId,
+    );
+  });
+}
+
+export async function listArtChallengeHistory(
+  guildId: string,
+): Promise<ArtChallengeHistory[]> {
+  return ((await currentData()).artChallengeHistory ?? []).filter(
+    (entry) => entry.guildId === guildId,
+  );
+}
+
+export function archiveArtChallenge(
+  threadId: string,
+  guildId: string,
+  endedAt: number,
+): Promise<void> {
+  return updateData((data) => {
+    if (!data.artChallenges.some((entry) => entry.threadId === threadId))
+      throw new Error("Challenge not found.");
+    (data.artChallengeHistory ??= []).push({ guildId, threadId, endedAt });
+    data.artChallenges = data.artChallenges.filter(
+      (entry) => entry.threadId !== threadId,
+    );
   });
 }
 

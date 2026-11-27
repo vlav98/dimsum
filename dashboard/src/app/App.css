@@ -91,6 +91,11 @@ h3 { font-size: 17px; }
 .command-item { display: grid; grid-template-columns: minmax(125px, .7fr) 1.3fr; gap: 18px; padding: 14px 0; border-top: 1px solid var(--border); }
 .command-item code { color: var(--accent); font-size: 13px; }
 .command-item span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.command-options { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.command-options summary { cursor: pointer; }
+.command-option-list { margin: 8px 0; padding-left: 22px; }
+.command-option-list li { margin: 8px 0; }
+.command-option-list p { margin: 3px 0; }
 .personal-prompts { margin-top: 24px; }
 .feature-grid { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr); align-items: start; gap: 22px; }
 .feature-card { min-width: 0; }

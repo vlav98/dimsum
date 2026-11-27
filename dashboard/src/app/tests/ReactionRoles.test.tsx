@@ -20,7 +20,7 @@ test('settings search channels, pick emojis, and edit, publish, and delete confi
   await user.type(screen.getByLabelText('Message'), 'Edited role message');
   await user.clear(screen.getByLabelText('Emoji 1'));
   await user.type(screen.getByLabelText('Emoji 1'), ':heart:');
-  await user.click(screen.getByRole('tab', { name: 'Anti-writer block' }));
+  await user.click(screen.getByRole('tab', { name: 'antiArtBlock' }));
   await user.click(
     screen.getByRole('tab', { name: 'Administration & utilities' }),
   );

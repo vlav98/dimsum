@@ -469,10 +469,11 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
     assert.ok(
       commands.some(
         (command) =>
-          command.name === "prompt" && command.category === "Anti-writer block",
+          command.name === "prompt" && command.category === "antiArtBlock",
       ),
     );
     const paletteCommand = commands.find((command) => command.name === "palette");
+    assert.equal(commands.find((command) => command.name === "draw-this-in-palette").category, "antiArtBlock");
     assert.equal(paletteCommand.options[0].name, "count");
     assert.equal(paletteCommand.options[0].min_value, 2);
     assert.equal(paletteCommand.options[0].max_value, 8);
@@ -523,9 +524,15 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
     });
     const artRoute = "/api/guilds/guild-1/art-challenges";
     assert.equal((await request(`${baseUrl}${artRoute}`)).status, 401);
+    assert.equal((await request(`${baseUrl}${artRoute}/history`)).status, 401);
+    assert.equal((await request(`${baseUrl}${artRoute}/thread-1/participants`)).status, 401);
+    assert.equal((await request(`${baseUrl}${artRoute}/thread-1/deadlines`, { method: "PUT" })).status, 401);
     assert.equal((await request(`${baseUrl}${artRoute}/thread-1/hide`, { method: "POST" })).status, 401);
     assert.equal((await request(`${baseUrl}/api/guilds/guild-2/art-challenges`, cookieOptions)).status, 403);
     assert.equal((await change("/api/guilds/guild-2/art-challenges/thread-2/end", "POST")).status, 403);
+    assert.equal((await request(`${baseUrl}/api/guilds/guild-2/art-challenges/history`, cookieOptions)).status, 403);
+    assert.equal((await request(`${baseUrl}/api/guilds/guild-2/art-challenges/thread-2/participants`, cookieOptions)).status, 403);
+    assert.equal((await change("/api/guilds/guild-2/art-challenges/thread-2/deadlines", "PUT", { hideAt: 1, endAt: 2 })).status, 403);
     const artList = await (await request(`${baseUrl}${artRoute}`, cookieOptions)).json();
     assert.equal(artList.length, 1);
     assert.equal(artList[0].threadId, "thread-1");

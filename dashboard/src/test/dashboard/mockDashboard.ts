@@ -51,9 +51,19 @@ export function mockDashboard(hasManagedServers = true) {
       mappings: [{ emoji: '👍', roleId: 'role-1' }],
     },
   ];
+  let challenges = [
+    { threadId: 'thread-1', hideAt: 2000000000000, endAt: 2000003600000, hidden: false },
+  ];
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input);
     const method = init?.method ?? 'GET';
+    if (url.startsWith('/api/guilds/guild-1/art-challenges/') && method === 'POST') {
+      const [, id, action] = url.match(/art-challenges\/([^/]+)\/(hide|end)$/) ?? [];
+      challenges = action === 'end'
+        ? challenges.filter((challenge) => challenge.threadId !== id)
+        : challenges.map((challenge) => challenge.threadId === id ? { ...challenge, hidden: true } : challenge);
+      return jsonResponse(null, 204);
+    }
     if (method === 'DELETE' && url.includes('/saved-prompts/')) {
       const id = decodeURIComponent(url.split('/').at(-1)!);
       mine = mine.filter((entry) => entry.id !== id);
@@ -144,7 +154,19 @@ export function mockDashboard(hasManagedServers = true) {
         {
           name: 'prompt',
           description: 'Generate a story starter',
-          category: 'Anti-writer block',
+          category: 'antiArtBlock',
+        },
+        {
+          name: 'palette',
+          description: 'Generate a harmonious color palette',
+          category: 'antiArtBlock',
+          options: [{ name: 'count', description: 'Number of colors (2–8; random if omitted)', type: 4, min_value: 2, max_value: 8 }],
+        },
+        {
+          name: 'oc-art-vibe',
+          description: 'Generate an OC concept, palette, and color script',
+          category: 'antiArtBlock',
+          options: [],
         },
         {
           name: 'daily',
@@ -156,7 +178,18 @@ export function mockDashboard(hasManagedServers = true) {
           description: 'Post a group prompt',
           category: 'Productivity & sharing',
         },
+        {
+          name: 'draw-this-in-palette',
+          description: 'Start a timed community drawing challenge in a thread',
+          category: 'antiArtBlock',
+          options: [
+            { name: 'view_minutes', description: 'Reference viewing time in minutes (default 10)', type: 4, min_value: 1, max_value: 720 },
+            { name: 'submit_minutes', description: 'Submission time after viewing ends (default 60)', type: 4, min_value: 1, max_value: 720 },
+          ],
+        },
       ],
+      '/api/guilds/guild-1/art-challenges': challenges,
+      '/api/guilds/guild-1/art-challenges/history': [],
       '/api/me/saved-prompts': mine,
       '/api/guilds/guild-1/saved-prompts': server,
       '/api/guilds/guild-1/settings': { prefix: '!', isCustom: false },

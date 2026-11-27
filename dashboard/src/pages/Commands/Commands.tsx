@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { Guild } from '../../lib/api';
 import type { DashboardData } from '../../types/dashboard';
-import CommandList from '../../components/common/CommandList/CommandList';
 import ContentCard from '../../components/common/ContentCard/ContentCard';
 import Feedback from '../../components/common/Feedback/Feedback';
 import LoadState from '../../components/common/LoadState/LoadState';
 import CommandThemeTabs from './components/CommandThemeTabs/CommandThemeTabs';
+import CommandCatalog from './components/CommandCatalog/CommandCatalog';
 import DailyPostSettings from './components/DailyPostSettings/DailyPostSettings';
+import ArtChallenges from './components/ArtChallenges/ArtChallenges';
 import ReactionRoles from './components/ReactionRoles/ReactionRoles';
 import WritingChannelSettings from './components/WritingChannelSettings/WritingChannelSettings';
 import { useCommandSettings } from './hooks/useCommandSettings';
@@ -25,8 +26,11 @@ export default function Commands({
     ...new Set(commands.map((command) => command.category ?? 'Utilities')),
   ];
   const [category, setCategory] = useState(categories[0] ?? '');
+  const activeCategory = categories.includes(category)
+    ? category
+    : (categories[0] ?? '');
   const activeCommands = commands.filter(
-    (command) => (command.category ?? 'Utilities') === category,
+    (command) => (command.category ?? 'Utilities') === activeCategory,
   );
   const hasCommand = (name: string) =>
     activeCommands.some((command) => command.name === name);
@@ -50,29 +54,20 @@ export default function Commands({
     <div className="command-settings">
       <CommandThemeTabs
         categories={categories}
-        category={category}
+        category={activeCategory}
         onChange={setCategory}
       />
       <div
         className="command-theme-panel"
         role="tabpanel"
         id="command-theme-panel"
-        aria-labelledby={`theme-${categories.indexOf(category)}`}
+        aria-labelledby={`theme-${categories.indexOf(activeCategory)}`}
       >
-        <ContentCard>
-          <h3>{category}</h3>
-          <CommandList commands={activeCommands} />
-          {!['daily', 'group-prompt', 'writing-channel', 'reactionroles'].some(
-            hasCommand,
-          ) && (
-            <p className="field-help">
-              These commands are configured when you run them in Discord; no
-              server-wide settings are needed.
-            </p>
-          )}
-        </ContentCard>
         <Feedback error={error} />
         <div className="feature-grid">
+          {hasCommand('draw-this-in-palette') && (
+            <ArtChallenges guildId={guild.id} />
+          )}
           {hasCommand('daily') && (
             <DailyPostSettings
               guildId={guild.id}
@@ -89,6 +84,7 @@ export default function Commands({
             <ReactionRoles details={details} editor={editor} />
           )}
         </div>
+        <CommandCatalog category={activeCategory} commands={activeCommands} />
       </div>
     </div>
   );

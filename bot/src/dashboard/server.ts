@@ -26,6 +26,8 @@ import {
 import { listReactionEmojis } from "../features/reactionRoles/emojis";
 import {
   ArtChallengeError,
+  artChallengeParticipants,
+  editArtChallengeDeadlines,
   listGuildArtChallenges,
   manageArtChallenge,
 } from "../features/community/artChallenges";
@@ -42,6 +44,7 @@ import {
   getWritingChannel,
   setWritingChannel,
   getDailyPostSettings,
+  listArtChallengeHistory,
   setDailyPostSettings,
 } from "../storage";
 
@@ -772,11 +775,9 @@ export async function startDashboardServer(
             !nickname.trim() ||
             nickname.length > 32)
         ) {
-          res
-            .status(400)
-            .json({
-              error: "Nickname must be 1–32 characters, or null to reset it.",
-            });
+          res.status(400).json({
+            error: "Nickname must be 1–32 characters, or null to reset it.",
+          });
           return;
         }
         const guild = client.guilds.cache.get(guildId);
@@ -786,11 +787,9 @@ export async function startDashboardServer(
         }
         const member = guild.members.me ?? (await guild.members.fetchMe());
         if (!member.permissions.has(PermissionFlagsBits.ChangeNickname)) {
-          res
-            .status(400)
-            .json({
-              error: "DimSum needs Change Nickname permission in this server.",
-            });
+          res.status(400).json({
+            error: "DimSum needs Change Nickname permission in this server.",
+          });
           return;
         }
         await member.setNickname(
@@ -816,11 +815,83 @@ export async function startDashboardServer(
           return;
         }
         const challenges = await listGuildArtChallenges(client, guildId);
-        res.json(challenges.map(({ threadId, hideAt, endAt, hidden }) => ({
-          threadId, hideAt, endAt, hidden,
-        })));
+        res.json(
+          challenges.map(({ threadId, hideAt, endAt, hidden }) => ({
+            threadId,
+            hideAt,
+            endAt,
+            hidden,
+          })),
+        );
       } catch (error) {
         next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/art-challenges/history",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        if (!client.guilds.cache.has(guildId)) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        res.json((await listArtChallengeHistory(guildId)).reverse());
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/art-challenges/:threadId/participants",
+    requireLogin,
+    async (req, res) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        if (!client.guilds.cache.has(guildId)) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const threadId = getRouteParam(req, "threadId");
+        const active = (await listGuildArtChallenges(client, guildId)).find(
+          (entry) => entry.threadId === threadId,
+        );
+        const history = active
+          ? undefined
+          : (await listArtChallengeHistory(guildId)).find(
+              (entry) => entry.threadId === threadId,
+            );
+        const endedAt = active
+          ? Math.min(Date.now(), active.endAt)
+          : history?.endedAt;
+        if (endedAt === undefined)
+          throw new ArtChallengeError("Challenge not found.", 404);
+        res.json({
+          participants: await artChallengeParticipants(
+            client,
+            guildId,
+            threadId,
+            endedAt,
+          ),
+        });
+      } catch (error) {
+        if (error instanceof ArtChallengeError) {
+          res.status(error.status).json({ error: error.message });
+          return;
+        }
+        console.error("Could not count challenge participants:", error);
+        res
+          .status(502)
+          .json({
+            error:
+              "Could not count participants. Check the thread and bot permissions.",
+          });
       }
     },
   );
@@ -841,7 +912,12 @@ export async function startDashboardServer(
           res.status(400).json({ error: "Unknown challenge action." });
           return;
         }
-        await manageArtChallenge(client, guildId, getRouteParam(req, "threadId"), action);
+        await manageArtChallenge(
+          client,
+          guildId,
+          getRouteParam(req, "threadId"),
+          action,
+        );
         res.status(204).end();
       } catch (error) {
         if (error instanceof ArtChallengeError) {
@@ -850,7 +926,40 @@ export async function startDashboardServer(
         }
         console.error("Could not update drawing challenge:", error);
         res.status(502).json({
-          error: "Could not complete the challenge update. The reference may already be hidden; refresh and retry.",
+          error:
+            "Could not complete the challenge update. The reference may already be hidden; refresh and retry.",
+        });
+      }
+    },
+  );
+
+  app.put(
+    "/api/guilds/:guildId/art-challenges/:threadId/deadlines",
+    requireLogin,
+    async (req, res) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        if (!client.guilds.cache.has(guildId)) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        await editArtChallengeDeadlines(
+          client,
+          guildId,
+          getRouteParam(req, "threadId"),
+          req.body?.hideAt,
+          req.body?.endAt,
+        );
+        res.status(204).end();
+      } catch (error) {
+        if (error instanceof ArtChallengeError) {
+          res.status(error.status).json({ error: error.message });
+          return;
+        }
+        console.error("Could not edit drawing challenge deadlines:", error);
+        res.status(502).json({
+          error: "Could not update challenge deadlines; refresh and retry.",
         });
       }
     },
@@ -895,12 +1004,10 @@ export async function startDashboardServer(
           !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) ||
           (kind !== "prompt" && kind !== "challenge")
         ) {
-          res
-            .status(400)
-            .json({
-              error:
-                "Choose an enabled status, channel, UTC time (HH:MM), and prompt or challenge.",
-            });
+          res.status(400).json({
+            error:
+              "Choose an enabled status, channel, UTC time (HH:MM), and prompt or challenge.",
+          });
           return;
         }
         if (enabled) await writingChannel(client, guildId, channelId);

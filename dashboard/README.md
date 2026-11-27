@@ -29,7 +29,10 @@ Open a shared server to access its separate pages:
 - **Bot settings** (Manage Server or Administrator required): change the
   prefix and the bot's server nickname.
 - **Commands** (Manage Server or Administrator required): browse theme tabs
-  and configure their commands. Create/edit/delete reaction-role messages.
+  and command options and configure their commands. The catalog is generated
+  from registered slash-command definitions; restart the bot and refresh the
+  dashboard after adding a command. New custom management panels still need
+  to be implemented separately. Create/edit/delete reaction-role messages.
   Search for a channel,
   choose default or server emojis, or type Unicode or `:emoji_name:` codes.
   Edited messages stay in their original channels. Existing assigned roles
@@ -40,6 +43,12 @@ Open a shared server to access its separate pages:
   Messages, and Embed Links in the selected channel.
   **Automatic daily posts** schedules a story prompt or writing challenge
   in a chosen channel at a UTC time.
+  Under **antiArtBlock**, **Drawing challenges** lists active `/draw-this-in-palette` threads and lets
+  managers edit deadlines, hide a reference, or end a challenge early. Completed
+  challenges are recorded from this update onward. Participant counts include
+  unique non-bot users with an attachment posted by the deadline; deleted
+  messages are not counted. Ending announces the deadline but does not lock the
+  thread; images already saved cannot be recalled.
 - **Saved in …**: **My prompts** lists your own saves from that server;
   **Server prompts** lets managers view and delete any member's saves from that
   server. Both tabs support generator-type filters and deletion with confirmation.

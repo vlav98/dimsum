@@ -1,2 +1,5 @@
 .command-settings, .command-theme-panel { display: grid; row-gap: 24px; min-width: 0; }
 .command-theme-panel > .feature-grid:empty { display: none; }
+.art-challenge-list { display: grid; gap: 16px; padding-left: 20px; }
+.art-challenge-list p { margin: 6px 0; }
+.art-challenge-actions { display: flex; flex-wrap: wrap; gap: 8px; }

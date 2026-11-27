@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const { mkdtemp, rm, writeFile } = require("node:fs/promises");
 const path = require("node:path");
 const os = require("node:os");
-const { ChannelType, EmbedBuilder } = require("discord.js");
+const { ChannelType, Collection, EmbedBuilder } = require("discord.js");
 
 require("ts-node/register");
 require("tsconfig-paths/register");
@@ -11,6 +11,8 @@ require("tsconfig-paths/register");
 const { CommandList } = require("../src/commands");
 const {
   createArtChallengeRunner,
+  artChallengeParticipants,
+  editArtChallengeDeadlines,
   listGuildArtChallenges,
   manageArtChallenge,
 } = require("../src/features/community/artChallenges");
@@ -194,6 +196,10 @@ test("drawing challenge persists its deadlines and hides only the reference", as
   await createArtChallengeRunner(client)(record.endAt);
   assert.match(notifications[1].content, /deadline has passed/);
   assert.equal((await storage.listArtChallenges()).length, 0);
+  assert.deepEqual(await storage.listArtChallengeHistory("guild"), [
+    { guildId: "guild", threadId: "thread", endedAt: record.endAt },
+  ]);
+  assert.deepEqual(await storage.listArtChallengeHistory("other"), []);
   await createArtChallengeRunner(client)(record.endAt + 5000);
   assert.equal(notifications.length, 2);
 
@@ -204,6 +210,38 @@ test("drawing challenge persists its deadlines and hides only the reference", as
     ...record,
     threadId: "retry",
     hidden: false,
+  });
+
+  test("participation counts unique non-bot attachment authors before the deadline", async () => {
+    const messages = new Collection([
+      ["1", { id: "1", author: { id: "a", bot: false }, attachments: new Collection([["x", {}]]), createdTimestamp: 10 }],
+      ["2", { id: "2", author: { id: "a", bot: false }, attachments: new Collection([["x", {}]]), createdTimestamp: 11 }],
+      ["3", { id: "3", author: { id: "b", bot: false }, attachments: new Collection(), createdTimestamp: 10 }],
+      ["4", { id: "4", author: { id: "c", bot: true }, attachments: new Collection([["x", {}]]), createdTimestamp: 10 }],
+      ["5", { id: "5", author: { id: "d", bot: false }, attachments: new Collection([["x", {}]]), createdTimestamp: 21 }],
+    ]);
+    const thread = { guildId: "guild", isThread: () => true, messages: { fetch: async () => messages } };
+    const client = { channels: { fetch: async () => thread } };
+    assert.equal(await artChallengeParticipants(client, "guild", "thread", 20), 1);
+    await assert.rejects(artChallengeParticipants(client, "other", "thread", 20), /unavailable/);
+  });
+
+  test("participation counting fetches older pages", async () => {
+    const first = new Collection(Array.from({ length: 100 }, (_, index) => {
+      const id = String(100 - index);
+      return [id, { id, author: { id: "same", bot: false }, attachments: new Collection([["x", {}]]), createdTimestamp: 10 }];
+    }));
+    const older = new Collection([["0", {
+      id: "0", author: { id: "other", bot: false },
+      attachments: new Collection([["x", {}]]), createdTimestamp: 10,
+    }]]);
+    const pages = [];
+    const thread = { guildId: "guild", isThread: () => true, messages: { fetch: async (options) => {
+      pages.push(options);
+      return options.before ? older : first;
+    } } };
+    assert.equal(await artChallengeParticipants({ channels: { fetch: async () => thread } }, "guild", "thread", 20), 2);
+    assert.equal(pages[1].before, "1");
   });
   const originalSend = thread.send;
   thread.send = async () => {
@@ -225,6 +263,39 @@ test("drawing challenge persists its deadlines and hides only the reference", as
   assert.equal(defaults.endAt, now + 70 * 60000);
   assert.equal((await listGuildArtChallenges(client, "guild")).length, 1);
   assert.equal((await listGuildArtChallenges(client, "other")).length, 0);
+  await assert.rejects(
+    editArtChallengeDeadlines(
+      client,
+      "other",
+      "thread",
+      now + 600000,
+      now + 900000,
+    ),
+    /not found/,
+  );
+  await assert.rejects(
+    editArtChallengeDeadlines(
+      client,
+      "guild",
+      "thread",
+      now + 900000,
+      now + 600000,
+    ),
+    /deadlines/,
+  );
+  await editArtChallengeDeadlines(
+    client,
+    "guild",
+    "thread",
+    now + 600000,
+    now + 900000,
+  );
+  assert.equal((await storage.listArtChallenges())[0].endAt, now + 900000);
+  assert.match(
+    published.embeds[0].toJSON().description,
+    new RegExp(`<t:${(now + 900000) / 1000}:R>`),
+  );
+  assert.match(notifications.at(-1).content, /updated the challenge deadlines/);
   await assert.rejects(
     manageArtChallenge(client, "other", "thread", "hide"),
     /not found/,

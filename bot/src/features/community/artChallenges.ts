@@ -7,9 +7,11 @@ import {
 } from "discord.js";
 import {
   ArtChallenge,
+  archiveArtChallenge,
   listArtChallenges,
   markArtChallengeHidden,
   removeArtChallenge,
+  updateArtChallengeDeadlines,
 } from "../../storage";
 
 const startingThreads = new Set<string>();
@@ -180,8 +182,93 @@ async function transition(
         : "The submission deadline has passed. Thanks for sharing your studies!",
       allowedMentions: { parse: [] },
     });
-    await removeArtChallenge(challenge.threadId);
+    await archiveArtChallenge(
+      challenge.threadId,
+      thread.guildId,
+      manual ? now : challenge.endAt,
+    );
   }
+}
+
+export async function artChallengeParticipants(
+  client: Client,
+  guildId: string,
+  threadId: string,
+  endedAt: number,
+): Promise<number> {
+  const thread = await fetchThread(client, threadId);
+  if (!thread || thread.guildId !== guildId)
+    throw new ArtChallengeError("Challenge thread is unavailable.", 404);
+  const users = new Set<string>();
+  let before: string | undefined;
+  for (;;) {
+    const messages = await thread.messages.fetch({
+      limit: 100,
+      ...(before ? { before } : {}),
+    });
+    for (const message of messages.values()) {
+      if (
+        !message.author.bot &&
+        message.attachments.size > 0 &&
+        message.createdTimestamp <= endedAt
+      )
+        users.add(message.author.id);
+    }
+    if (messages.size < 100) break;
+    before = messages.last()?.id;
+    if (!before) throw new Error("Could not paginate challenge messages.");
+  }
+  return users.size;
+}
+
+export async function editArtChallengeDeadlines(
+  client: Client,
+  guildId: string,
+  threadId: string,
+  hideAt: number,
+  endAt: number,
+): Promise<void> {
+  await withThreadLock(threadId, async () => {
+    if (startingThreads.has(threadId))
+      throw new ArtChallengeError("The challenge is still starting.", 409);
+    const challenge = (await listArtChallenges()).find(
+      (entry) => entry.threadId === threadId,
+    );
+    if (!challenge || (challenge.guildId && challenge.guildId !== guildId))
+      throw new ArtChallengeError("Challenge not found.", 404);
+    const thread = await fetchThread(client, threadId);
+    if (!thread || thread.guildId !== guildId)
+      throw new ArtChallengeError("Challenge not found.", 404);
+    if (
+      !Number.isSafeInteger(hideAt) ||
+      !Number.isSafeInteger(endAt) ||
+      endAt > 253402300799999 ||
+      endAt <= Date.now() ||
+      (!challenge.hidden && endAt <= hideAt) ||
+      (!challenge.hidden && hideAt <= Date.now()) ||
+      (challenge.hidden && hideAt !== challenge.hideAt)
+    )
+      throw new ArtChallengeError(
+        "Choose future deadlines in order; an already hidden reference cannot be reopened.",
+        400,
+      );
+    await updateStarter(thread, challenge.hidden ? undefined : hideAt, endAt);
+    const reference = await thread.messages.fetch(challenge.referenceMessageId);
+    await reference.edit({
+      content: challenge.hidden
+        ? `Reference viewing time is over. Submission deadline: <t:${Math.floor(endAt / 1000)}:F> (<t:${Math.floor(endAt / 1000)}:R>).`
+        : `Reference visible until <t:${Math.floor(hideAt / 1000)}:F> (<t:${Math.floor(hideAt / 1000)}:R>). Submit your study by <t:${Math.floor(endAt / 1000)}:F> (<t:${Math.floor(endAt / 1000)}:R>).`,
+    });
+    await updateArtChallengeDeadlines(
+      threadId,
+      challenge.hidden ? Math.min(hideAt, Date.now()) : hideAt,
+      endAt,
+    );
+    await thread.send({
+      content: `A server manager updated the challenge deadlines. Submission deadline: <t:${Math.floor(endAt / 1000)}:F> (<t:${Math.floor(endAt / 1000)}:R>).`,
+      allowedMentions: { parse: [] },
+    });
+  });
 }
 
 export async function manageArtChallenge(

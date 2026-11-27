@@ -144,7 +144,7 @@ not an intellectual-property ownership system. Find the adopted sheet through
 Save button.
 
 Storage now also includes dedicated writing channels, adoption offers,
-daily-post schedules, and active drawing challenges. Existing version-1 through
+daily-post schedules, active drawing challenges, and completed challenge history. Existing version-1 through
 version-4 files migrate to version 5 without losing prefixes,
 reaction-role mappings, or saved prompts. Keep a backup of
 `bot/data/dashboard-data.json`.
@@ -166,8 +166,11 @@ non-nude or AI-free images. Removing the image from the message cannot prevent
 people from saving it or visiting the credited source. Pending deadlines
 survive restarts, but actions can be delayed while the bot is offline or lacks
 permissions; they resume when it can access the thread again.
-Server managers can view active challenges under **Commands → Productivity &
-sharing** in the dashboard and hide a reference or end a challenge early.
+Server managers can view active challenges under **Commands → antiArtBlock**
+in the dashboard, edit deadlines, hide a reference, or end a challenge early.
+Completed challenges are recorded from this update onward. Participant counts
+are calculated from accessible thread messages: unique non-bot users who posted
+an attachment by the deadline. Deleted messages cannot be counted.
 
 ### Command organization
 
@@ -176,8 +179,8 @@ All slash commands live in camelCase theme folders under
 
 | Folder | Commands |
 | --- | --- |
-| `antiArtBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose`, `/palette`, `/oc-art-vibe` |
-| `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt`, `/draw-this-in-palette` |
+| `antiArtBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose`, `/palette`, `/oc-art-vibe`, `/draw-this-in-palette` |
+| `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt` |
 | `serverGames/` | `/oc-duel`, `/matchup`, `/roulette` |
 | `personalCreations/` | `/adopt`, `/savedprompts` |
 | `administrationAndUtilities/` | `/writing-channel`, `/reactionroles`, `/help`, `/hello`, `/react` |

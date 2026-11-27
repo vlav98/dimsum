@@ -13,7 +13,7 @@ test('command themes expose and save the daily schedule', async () => {
   const user = userEvent.setup();
   render(<App />);
   await user.click(
-    await screen.findByRole('tab', { name: 'Anti-writer block' }),
+    await screen.findByRole('tab', { name: 'antiArtBlock' }),
   );
   expect(
     screen.queryByLabelText('Daily posting channel'),

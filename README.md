@@ -62,8 +62,8 @@ Use `/help` to browse the themed command catalog. Existing commands such as
 
 | Theme | Commands |
 | --- | --- |
-| Anti-writer block | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name`, `/pose`, `/palette`, `/oc-art-vibe` |
-| Productivity and sharing | `/challenge`, `/daily`, `/group-prompt`, `/draw-this-in-palette` |
+| antiArtBlock | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name`, `/pose`, `/palette`, `/oc-art-vibe`, `/draw-this-in-palette` |
+| Productivity and sharing | `/challenge`, `/daily`, `/group-prompt` |
 | Server games | `/oc-duel` (alias `/matchup`), `/roulette` |
 | Personal creations | `/adopt`, `/savedprompts` |
 
@@ -135,11 +135,17 @@ DimSum is present; cards without the bot are disabled. Each shared server has
 separate **Bot settings**, **Commands**, and saved-prompts pages.
 **Bot settings** controls the server prefix and the bot's server nickname
 (requires Change Nickname permission). **Commands** has a tab per command theme.
+The catalog and option descriptions come directly from the bot's registered
+slash commands; newly registered commands appear after restarting the bot and
+refreshing the dashboard. Custom management panels still require frontend work.
 Under **Productivity & sharing**, managers can set the community writing channel
 and enable a daily story prompt or writing challenge with a channel and UTC
 posting time. Schedules survive restarts; if the bot returns after today's
 posting time, it sends today's missed post, not a backlog of older days.
 Changing the schedule does not send a second post on a day already posted.
+Under **antiArtBlock**, managers can view drawing challenges, hide their
+references, or end them early. These actions update Discord; ending a challenge
+does not lock its thread.
 Under **Administration & utilities**, managers can create, edit, or delete
 reaction-role messages. The channel selector supports search; the emoji picker
 offers default and server emojis, and also accepts Unicode or `:emoji_name:`
