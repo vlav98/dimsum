@@ -166,6 +166,8 @@ non-nude or AI-free images. Removing the image from the message cannot prevent
 people from saving it or visiting the credited source. Pending deadlines
 survive restarts, but actions can be delayed while the bot is offline or lacks
 permissions; they resume when it can access the thread again.
+Server managers can view active challenges under **Commands → Productivity &
+sharing** in the dashboard and hide a reference or end a challenge early.
 
 ### Command organization
 
@@ -182,7 +184,11 @@ All slash commands live in camelCase theme folders under
 
 Each theme's `index.ts` exports its command list. The parent `index.ts` combines
 them into `CommandGroups` and `CommandList`, used by registration, `/help`, and
-dashboard categories. Shared OC randomizers live in
+dashboard categories.
+The dashboard derives names, descriptions, categories, and option metadata
+from these registered command definitions; restart the bot and refresh the
+dashboard after adding one. Custom settings panels require separate UI work.
+Shared OC randomizers live in
 `src/generators/character/`; reusable writing generation lives in
 `src/generators/writing.ts`. Discord slash-command names and behavior are
 unchanged.

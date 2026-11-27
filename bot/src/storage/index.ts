@@ -66,6 +66,7 @@ interface StoredData {
 }
 
 export interface ArtChallenge {
+  guildId?: string;
   threadId: string;
   referenceMessageId: string;
   hideAt: number;
@@ -187,6 +188,7 @@ async function readData(): Promise<StoredData> {
       data.artChallenges.some(
         (challenge) =>
           !challenge ||
+          (challenge.guildId !== undefined && typeof challenge.guildId !== "string") ||
           typeof challenge.threadId !== "string" ||
           typeof challenge.referenceMessageId !== "string" ||
           !Number.isFinite(challenge.hideAt) ||

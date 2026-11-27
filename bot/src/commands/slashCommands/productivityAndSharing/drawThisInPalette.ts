@@ -125,6 +125,7 @@ export const drawThisInPalette: Command = {
       setArtChallengeStarting(thread.id, true);
       try {
         await saveArtChallenge({
+          guildId: interaction.guildId,
           threadId: thread.id,
           referenceMessageId: referenceMessage.id,
           hideAt,

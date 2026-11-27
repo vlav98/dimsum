@@ -25,6 +25,11 @@ import {
 } from "../features/reactionRoles/reactionRoles";
 import { listReactionEmojis } from "../features/reactionRoles/emojis";
 import {
+  ArtChallengeError,
+  listGuildArtChallenges,
+  manageArtChallenge,
+} from "../features/community/artChallenges";
+import {
   deleteSavedPromptForGuild,
   deleteSavedPromptForUser,
   getDefaultPrefix,
@@ -623,11 +628,15 @@ export async function startDashboardServer(
   app.get("/api/commands", requireLogin, (_req, res) => {
     res.json(
       CommandGroups.flatMap((group) =>
-        group.commands.map(({ data }) => ({
-          name: data.name,
-          description: data.description,
-          category: group.name,
-        })),
+        group.commands.map(({ data }) => {
+          const definition = data.toJSON();
+          return {
+            name: definition.name,
+            description: definition.description,
+            category: group.name,
+            options: definition.options ?? [],
+          };
+        }),
       ),
     );
   });
@@ -791,6 +800,58 @@ export async function startDashboardServer(
         res.json({ nickname, username: client.user?.username ?? "DimSum" });
       } catch (error) {
         next(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/guilds/:guildId/art-challenges",
+    requireLogin,
+    async (req, res, next) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        if (!client.guilds.cache.has(guildId)) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const challenges = await listGuildArtChallenges(client, guildId);
+        res.json(challenges.map(({ threadId, hideAt, endAt, hidden }) => ({
+          threadId, hideAt, endAt, hidden,
+        })));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.post(
+    "/api/guilds/:guildId/art-challenges/:threadId/:action",
+    requireLogin,
+    async (req, res) => {
+      try {
+        const guildId = getRouteParam(req, "guildId");
+        if (!(await userCanManageGuild(req, res, guildId))) return;
+        if (!client.guilds.cache.has(guildId)) {
+          res.status(404).json({ error: "DimSum is not in this server." });
+          return;
+        }
+        const action = getRouteParam(req, "action");
+        if (action !== "hide" && action !== "end") {
+          res.status(400).json({ error: "Unknown challenge action." });
+          return;
+        }
+        await manageArtChallenge(client, guildId, getRouteParam(req, "threadId"), action);
+        res.status(204).end();
+      } catch (error) {
+        if (error instanceof ArtChallengeError) {
+          res.status(error.status).json({ error: error.message });
+          return;
+        }
+        console.error("Could not update drawing challenge:", error);
+        res.status(502).json({
+          error: "Could not complete the challenge update. The reference may already be hidden; refresh and retry.",
+        });
       }
     },
   );

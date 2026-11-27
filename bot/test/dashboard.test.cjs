@@ -9,17 +9,21 @@ require("tsconfig-paths/register");
 
 const { startDashboardServer } = require("../src/dashboard/server");
 const { DashboardSessionStore } = require("../src/dashboard/sessionStore");
+const { CommandGroups } = require("../src/commands");
 const {
   savePrompt,
   saveReactionRoleMessage,
   listReactionRoleMessages,
   listSavedPromptsForUser,
+  saveArtChallenge,
 } = require("../src/storage");
 const {
   Collection,
   ChannelType,
   PermissionsBitField,
   PermissionFlagsBits,
+  EmbedBuilder,
+  SlashCommandBuilder,
 } = require("discord.js");
 
 const request = globalThis.fetch.bind(globalThis);
@@ -468,6 +472,72 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
           command.name === "prompt" && command.category === "Anti-writer block",
       ),
     );
+    const paletteCommand = commands.find((command) => command.name === "palette");
+    assert.equal(paletteCommand.options[0].name, "count");
+    assert.equal(paletteCommand.options[0].min_value, 2);
+    assert.equal(paletteCommand.options[0].max_value, 8);
+    const group = CommandGroups[0];
+    group.commands.push({
+      data: new SlashCommandBuilder().setName("new-catalog-command")
+        .setDescription("A newly registered command")
+        .addIntegerOption((option) => option.setName("size").setDescription("How many").setMinValue(2).setMaxValue(8)),
+      run: async () => {},
+    });
+    try {
+      const updated = await (await request(`${baseUrl}/api/commands`, cookieOptions)).json();
+      const added = updated.find((command) => command.name === "new-catalog-command");
+      assert.equal(added.category, group.name);
+      assert.equal(added.options[0].name, "size");
+      assert.equal(added.options[0].max_value, 8);
+    } finally {
+      group.commands.pop();
+    }
+
+    let refEmbed = new EmbedBuilder().setImage("https://images.unsplash.com/test");
+    const refMessage = {
+      get embeds() { return [refEmbed]; },
+      edit: async ({ embeds }) => { if (embeds) refEmbed = embeds[0]; },
+    };
+    let starterEmbed = new EmbedBuilder().setDescription(
+      "Reference hidden: <t:2000000000:F> (<t:2000000000:R>)\nSubmission deadline: <t:2000003600:F> (<t:2000003600:R>)",
+    );
+    const messages = [];
+    const artThread = {
+      guildId: "guild-1",
+      isThread: () => true,
+      messages: { fetch: async () => refMessage },
+      fetchStarterMessage: async () => ({
+        embeds: [starterEmbed],
+        edit: async ({ embeds }) => { starterEmbed = embeds[0]; },
+      }),
+      send: async (payload) => { messages.push(payload); },
+    };
+    client.channels.fetch = async () => artThread;
+    await saveArtChallenge({
+      guildId: "guild-1", threadId: "thread-1", referenceMessageId: "ref",
+      hideAt: 2000000000000, endAt: 2000003600000, hidden: false,
+    });
+    await saveArtChallenge({
+      guildId: "guild-2", threadId: "thread-2", referenceMessageId: "ref",
+      hideAt: 2000000000000, endAt: 2000003600000, hidden: false,
+    });
+    const artRoute = "/api/guilds/guild-1/art-challenges";
+    assert.equal((await request(`${baseUrl}${artRoute}`)).status, 401);
+    assert.equal((await request(`${baseUrl}${artRoute}/thread-1/hide`, { method: "POST" })).status, 401);
+    assert.equal((await request(`${baseUrl}/api/guilds/guild-2/art-challenges`, cookieOptions)).status, 403);
+    assert.equal((await change("/api/guilds/guild-2/art-challenges/thread-2/end", "POST")).status, 403);
+    const artList = await (await request(`${baseUrl}${artRoute}`, cookieOptions)).json();
+    assert.equal(artList.length, 1);
+    assert.equal(artList[0].threadId, "thread-1");
+    assert.equal(artList[0].referenceMessageId, undefined);
+    assert.equal((await change(`${artRoute}/thread-2/hide`, "POST")).status, 404);
+    assert.equal((await change(`${artRoute}/thread-1/unknown`, "POST")).status, 400);
+    assert.equal((await change(`${artRoute}/thread-1/hide`, "POST")).status, 204);
+    assert.equal(EmbedBuilder.from(refEmbed).toJSON().image, undefined);
+    assert.equal((await change(`${artRoute}/thread-1/hide`, "POST")).status, 409);
+    assert.equal((await change(`${artRoute}/thread-1/end`, "POST")).status, 204);
+    assert.equal((await (await request(`${baseUrl}${artRoute}`, cookieOptions)).json()).length, 0);
+    assert.match(messages.at(-1).content, /ended this challenge early/);
     const writingResponse = await request(
       `${baseUrl}/api/guilds/guild-1/settings/writing`,
       cookieOptions,

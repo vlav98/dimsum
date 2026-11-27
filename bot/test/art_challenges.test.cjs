@@ -11,6 +11,8 @@ require("tsconfig-paths/register");
 const { CommandList } = require("../src/commands");
 const {
   createArtChallengeRunner,
+  listGuildArtChallenges,
+  manageArtChallenge,
 } = require("../src/features/community/artChallenges");
 const storage = require("../src/storage");
 
@@ -93,13 +95,20 @@ test("drawing challenge persists its deadlines and hides only the reference", as
     },
     edit: async ({ embeds }) => {
       assert.equal((await storage.listArtChallenges()).length, 1);
-      referenceEmbed = embeds[0];
+      if (embeds) referenceEmbed = embeds[0];
     },
   };
   const thread = {
     id: "thread",
+    guildId: "guild",
     url: "https://discord.com/channels/guild/channel/thread",
     isThread: () => true,
+    fetchStarterMessage: async () => ({
+      embeds: published.embeds,
+      edit: async ({ embeds }) => {
+        published.embeds = embeds;
+      },
+    }),
     messages: {
       fetch: async (id) => {
         assert.equal(id, "reference");
@@ -214,6 +223,72 @@ test("drawing challenge persists its deadlines and hides only the reference", as
   const [defaults] = await storage.listArtChallenges();
   assert.equal(defaults.hideAt, now + 10 * 60000);
   assert.equal(defaults.endAt, now + 70 * 60000);
+  assert.equal((await listGuildArtChallenges(client, "guild")).length, 1);
+  assert.equal((await listGuildArtChallenges(client, "other")).length, 0);
+  await assert.rejects(
+    manageArtChallenge(client, "other", "thread", "hide"),
+    /not found/,
+  );
+  await manageArtChallenge(client, "guild", "thread", "hide");
+  assert.equal(EmbedBuilder.from(referenceEmbed).toJSON().image, undefined);
+  assert.equal((await storage.listArtChallenges())[0].hidden, true);
+  assert.match(
+    published.embeds[0].toJSON().description,
+    new RegExp(`Reference hidden: <t:${now / 1000}:F>`),
+  );
+  await assert.rejects(
+    manageArtChallenge(client, "guild", "thread", "hide"),
+    /already hidden/,
+  );
+  await manageArtChallenge(client, "guild", "thread", "end");
+  assert.equal((await storage.listArtChallenges()).length, 0);
+  assert.match(
+    published.embeds[0].toJSON().description,
+    new RegExp(`Submission deadline: <t:${now / 1000}:F>`),
+  );
+  assert.match(notifications.at(-1).content, /ended this challenge early/);
+  await command.run(interaction);
+  await manageArtChallenge(client, "guild", "thread", "end");
+  assert.equal(EmbedBuilder.from(referenceEmbed).toJSON().image, undefined);
+  assert.equal((await storage.listArtChallenges()).length, 0);
+
+  await storage.saveArtChallenge({ ...defaults, guildId: undefined });
+  assert.equal((await listGuildArtChallenges(client, "guild")).length, 1);
+  assert.equal((await listGuildArtChallenges(client, "other")).length, 0);
+  await storage.removeArtChallenge("thread");
+  await command.run(interaction);
+  const results = await Promise.allSettled([
+    manageArtChallenge(client, "guild", "thread", "end"),
+    manageArtChallenge(client, "guild", "thread", "end"),
+  ]);
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    1,
+  );
+  assert.equal(
+    results.filter((result) => result.status === "rejected").length,
+    1,
+  );
+  assert.equal((await storage.listArtChallenges()).length, 0);
+
+  await command.run(interaction);
+  const [concurrent] = await storage.listArtChallenges();
+  const notificationCount = notifications.length;
+  await Promise.all([
+    createArtChallengeRunner(client)(concurrent.hideAt),
+    manageArtChallenge(client, "guild", "thread", "end"),
+  ]);
+  const recent = notifications.slice(notificationCount);
+  assert.equal(
+    recent.filter((entry) => /viewing time is over/.test(entry.content)).length,
+    1,
+  );
+  assert.equal(
+    recent.filter((entry) => /ended this challenge early/.test(entry.content))
+      .length,
+    1,
+  );
+  assert.equal((await storage.listArtChallenges()).length, 0);
 });
 
 test("drawing challenge rejects unsupported channels and missing permissions", async () => {
