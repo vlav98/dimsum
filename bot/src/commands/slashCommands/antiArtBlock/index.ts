@@ -7,6 +7,7 @@ import { pose } from "./pose";
 import { palette } from "./palette";
 import { ocArtVibe } from "./ocArtVibe";
 import { drawThisInPalette } from "./drawThisInPalette";
+import { emojiOC, emojiPalette, emojiScene } from "./emojiArt";
 import {
   moods,
   nameStyles,
@@ -131,4 +132,7 @@ export const antiArtBlockCommands = [
   palette,
   ocArtVibe,
   drawThisInPalette,
+  emojiOC,
+  emojiPalette,
+  emojiScene,
 ];

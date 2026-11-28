@@ -62,7 +62,7 @@ Use `/help` to browse the themed command catalog. Existing commands such as
 
 | Theme | Commands |
 | --- | --- |
-| antiArtBlock | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name`, `/pose`, `/palette`, `/oc-art-vibe`, `/draw-this-in-palette` |
+| antiArtBlock | `/prompt`, `/ocgen`, `/tag`, `/twist`, `/name`, `/pose`, `/palette`, `/oc-art-vibe`, `/draw-this-in-palette`, `/emoji-oc`, `/emoji-palette`, `/emoji-scene` |
 | Productivity and sharing | `/challenge`, `/daily`, `/group-prompt` |
 | Server games | `/oc-duel` (alias `/matchup`), `/roulette` |
 | Personal creations | `/adopt`, `/savedprompts` |
@@ -76,6 +76,8 @@ Its strict content filter cannot guarantee non-nude or AI-free results.
 `/palette` generates a color-harmony palette locally; set `count` from 2 to 8
 or leave it blank for a random size.
 `/oc-art-vibe` combines an OC concept with a palette and color-use suggestions.
+`/emoji-oc`, `/emoji-palette`, and `/emoji-scene` provide curated emoji-based
+character, color, and composition challenges.
 `/draw-this-in-palette` starts a shared timed drawing challenge in a thread;
 see the [command reference](bot/README.md#drawing-challenges) for timing,
 permissions, and reference-image limitations.

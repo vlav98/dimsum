@@ -83,8 +83,8 @@ or `DIMSUM_DATA_DIR`.
 ## Writing tools
 
 Run `/help` for commands grouped by theme. All generators use curated local
-lists, not an external AI service. New generated results have a **Save prompt**
-button and their own type filters in `/savedprompts` and the dashboard.
+lists, not an external AI service. Writing generators offer a **Save prompt**
+button and type filters in `/savedprompts` and the dashboard.
 
 | Command | Options and behavior |
 | --- | --- |
@@ -102,6 +102,9 @@ button and their own type filters in `/savedprompts` and the dashboard.
 | `/pose` | Shows a random pose reference photo from Unsplash, with photographer credit. Requires `UNSPLASH_ACCESS_KEY` from [Unsplash](https://unsplash.com/developers). Uses Unsplash's strict content filter, which cannot guarantee non-nude or AI-free results. |
 | `/palette` | Generates a color-harmony palette with swatches and hex codes. Optional `count` from 2–8; omitted counts are random. No external service is needed. |
 | `/oc-art-vibe` | Generates an OC concept, palette swatches, and a short color-use script. |
+| `/emoji-oc` | Rolls 3–4 character design emojis. Optionally choose `genre` (fantasy, modern, sci-fi, gothic) and `count` (3 or 4). |
+| `/emoji-palette` | Rolls a curated two-emoji, five-color palette with a 70/30 color-use suggestion. |
+| `/emoji-scene` | Combines a setting, time or weather, and focal object into an illustration prompt. |
 | `/draw-this-in-palette` | Starts a timed thread challenge with a shared palette and Unsplash pose reference. |
 
 Examples:
@@ -179,7 +182,7 @@ All slash commands live in camelCase theme folders under
 
 | Folder | Commands |
 | --- | --- |
-| `antiArtBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose`, `/palette`, `/oc-art-vibe`, `/draw-this-in-palette` |
+| `antiArtBlock/` | `/prompt`, `/tag`, `/twist`, `/name`, `/randomprompt`, `/fanficprompt`, `/otpprompt`, `/ocgen`, `/pose`, `/palette`, `/oc-art-vibe`, `/draw-this-in-palette`, `/emoji-oc`, `/emoji-palette`, `/emoji-scene` |
 | `productivityAndSharing/` | `/challenge`, `/daily`, `/group-prompt` |
 | `serverGames/` | `/oc-duel`, `/matchup`, `/roulette` |
 | `personalCreations/` | `/adopt`, `/savedprompts` |

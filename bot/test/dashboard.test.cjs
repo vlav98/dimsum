@@ -477,6 +477,10 @@ test("dashboard lists all user servers and scopes settings, emoji editing, and p
     assert.equal(paletteCommand.options[0].name, "count");
     assert.equal(paletteCommand.options[0].min_value, 2);
     assert.equal(paletteCommand.options[0].max_value, 8);
+    for (const name of ["emoji-oc", "emoji-palette", "emoji-scene"])
+      assert.equal(commands.find((command) => command.name === name).category, "antiArtBlock");
+    const emojiOC = commands.find((command) => command.name === "emoji-oc");
+    assert.deepEqual(emojiOC.options.find((option) => option.name === "genre").choices.map((choice) => choice.value), ["fantasy", "modern", "sci-fi", "gothic"]);
     const group = CommandGroups[0];
     group.commands.push({
       data: new SlashCommandBuilder().setName("new-catalog-command")
